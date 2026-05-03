@@ -1,0 +1,232 @@
+[
+    {
+        "name": "Alice Johnson",
+        "email": "alice@student.edu",
+        "password": "alicepass",
+        "timezone": "America/New_York",
+        "privacy_consents": {
+            "location_consent": 1,
+            "social_consent": 1,
+            "calendar_write_consent": 0
+        },
+        "connected_calendars": [
+            {
+                "provider": "google",
+                "provider_calendar_id": "alice.primary@gmail.com",
+                "import_mode": "standard",
+                "status": "connected"
+            }
+        ],
+        "events": [
+            {
+                "title": "Calculus Lecture",
+                "start_at": "2026-04-28T09:00:00Z",
+                "end_at": "2026-04-28T10:15:00Z",
+                "effort_level": "High"
+            },
+            {
+                "title": "Study: Linear Algebra",
+                "start_at": "2026-04-28T11:00:00Z",
+                "end_at": "2026-04-28T12:00:00Z",
+                "effort_level": "Medium"
+            },
+            {
+                "title": "Lunch with Sam",
+                "start_at": "2026-04-28T12:30:00Z",
+                "end_at": "2026-04-28T13:15:00Z",
+                "effort_level": "Low"
+            },
+            {
+                "title": null,
+                "start_at": "2026-04-28T14:00:00Z",
+                "end_at": "2026-04-28T15:00:00Z",
+                "source_visibility": "hidden",
+                "is_busy_block_only": 1
+            }
+        ]
+    },
+    {
+        "name": "Bob Chen",
+        "email": "bob@student.edu",
+        "password": "bobpass",
+        "timezone": "America/Los_Angeles",
+        "privacy_consents": {
+            "location_consent": 0,
+            "social_consent": 1,
+            "calendar_write_consent": 0
+        },
+        "connected_calendars": [
+            {
+                "provider": "ical",
+                "provider_calendar_id": "https://example.com/bob-campus.ics",
+                "import_mode": "hidden",
+                "status": "connected"
+            }
+        ],
+        "events": [
+            {
+                "title": null,
+                "start_at": "2026-04-28T08:00:00Z",
+                "end_at": "2026-04-28T09:30:00Z",
+                "source_visibility": "hidden",
+                "is_busy_block_only": 1
+            },
+            {
+                "title": null,
+                "start_at": "2026-04-28T10:00:00Z",
+                "end_at": "2026-04-28T10:15:00Z",
+                "source_visibility": "hidden",
+                "is_busy_block_only": 1
+            }
+        ]
+    },
+    {
+        "name": "Carla Martinez",
+        "email": "carla@student.edu",
+        "password": "carlapass",
+        "timezone": "America/Chicago",
+        "privacy_consents": {
+            "location_consent": 1,
+            "social_consent": 0,
+            "calendar_write_consent": 1
+        },
+        "connected_calendars": [
+            {
+                "provider": "outlook",
+                "provider_calendar_id": "carla@school.edu",
+                "import_mode": "standard",
+                "status": "connected"
+            },
+            {
+                "provider": "ical",
+                "provider_calendar_id": "https://feeds.example.com/carla-external.ics",
+                "import_mode": "standard",
+                "status": "connected"
+            }
+        ],
+        "events": [
+            {
+                "title": "Research Meeting",
+                "start_at": "2026-04-28T13:00:00Z",
+                "end_at": "2026-04-28T14:30:00Z",
+                "effort_level": "High"
+            },
+            {
+                "title": "Evening Gym",
+                "start_at": "2026-04-28T20:00:00Z",
+                "end_at": "2026-04-28T21:00:00Z",
+                "effort_level": "Low"
+            },
+            {
+                "title": "Overnight Hackathon",
+                "start_at": "2026-04-28T23:30:00Z",
+                "end_at": "2026-04-29T06:00:00Z",
+                "effort_level": "High"
+            }
+        ]
+    },
+    {
+        "name": "Danielle Ortiz",
+        "email": "danielle@student.edu",
+        "password": "daniellepass",
+        "timezone": "Europe/London",
+        "privacy_consents": {
+            "location_consent": 0,
+            "social_consent": 1,
+            "calendar_write_consent": 0
+        },
+        "connected_calendars": [],
+        "events": [
+            {
+                "title": "Part-time Job (Evening)",
+                "start_at": "2026-04-28T17:00:00Z",
+                "end_at": "2026-04-28T21:00:00Z",
+                "effort_level": "Medium"
+            }
+        ]
+    },
+    {
+        "name": "Eric Green",
+        "email": "eric@student.edu",
+        "password": "ericpass",
+        "timezone": "America/New_York",
+        "privacy_consents": {
+            "location_consent": 1,
+            "social_consent": 1,
+            "calendar_write_consent": 1
+        },
+        "connected_calendars": [
+            {
+                "provider": "google",
+                "provider_calendar_id": "eric.personal@gmail.com",
+                "import_mode": "standard",
+                "status": "connected"
+            }
+        ],
+        "events": [
+            {
+                "title": "Morning Run",
+                "start_at": "2026-04-28T05:30:00Z",
+                "end_at": "2026-04-28T06:15:00Z",
+                "effort_level": "Low"
+            },
+            {
+                "title": "Midterm Exam",
+                "start_at": "2026-04-28T14:00:00Z",
+                "end_at": "2026-04-28T16:00:00Z",
+                "effort_level": "High"
+            }
+        ]
+    },
+    {
+        "name": "Fiona Li",
+        "email": "fiona@student.edu",
+        "password": "fionapass",
+        "timezone": "Asia/Hong_Kong",
+        "privacy_consent": {
+            "location_consent": 1
+        },
+        "connected_calendars": [
+            {
+                "provider": "ical",
+                "provider_calendar_id": "https://calendar.example.com/fiona.ics",
+                "import_mode": "standard",
+                "status": "connected"
+            }
+        ],
+        "events": [
+            {
+                "title": "Thesis Work",
+                "start_at": "2026-04-28T09:00:00Z",
+                "end_at": "2026-04-28T12:00:00Z",
+                "effort_level": "High"
+            },
+            {
+                "title": "Coffee Break",
+                "start_at": "2026-04-28T12:15:00Z",
+                "end_at": "2026-04-28T12:45:00Z",
+                "effort_level": "Low"
+            }
+        ]
+    },
+    {
+        "name": "Grace Park",
+        "email": "grace@student.edu",
+        "password": "gracepass",
+        "timezone": "America/New_York",
+        "privacy_consents": {
+            "location_consent": 0,
+            "social_consent": 0,
+            "calendar_write_consent": 0
+        },
+        "connected_calendars": [],
+        "events": [
+            {
+                "title": "Free Day",
+                "start_at": "2026-04-28T00:00:00Z",
+                "end_at": "2026-04-28T23:59:00Z",
+                "effort_level": "Low"
+            }
+        ]
+    }
+]
