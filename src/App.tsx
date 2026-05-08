@@ -54,6 +54,10 @@ function formatLocalTime(iso: string) {
     return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatTimeRange(startIso: string, endIso: string) {
+    return `${formatLocalTime(startIso)} - ${formatLocalTime(endIso)}`;
+}
+
 function toDateKeyLocal(iso: string) {
     const date = new Date(iso);
     const y = date.getFullYear();
@@ -517,8 +521,12 @@ function App() {
         setError('');
         try {
             await apiSuggestionAction(token, id, action);
-            const refreshed = await apiSuggestions(token);
-            setSuggestions(refreshed);
+            const [refreshedSuggestions, refreshedEvents] = await Promise.all([
+                apiSuggestions(token, insightDateKey),
+                apiEvents(token)
+            ]);
+            setSuggestions(refreshedSuggestions);
+            setEvents(refreshedEvents);
         } catch (actionError) {
             setError(actionError instanceof Error ? actionError.message : 'Failed to record suggestion action.');
         }
@@ -826,7 +834,7 @@ function App() {
                                         <ul className="summary-list">
                                             {insightEvents.slice(0, 6).map((item) => (
                                                 <li key={item.id}>
-                                                    <strong>{formatLocalTime(item.startAt)}</strong> {item.title}
+                                                    <strong>{formatTimeRange(item.startAt, item.endAt)}</strong> {item.title}
                                                 </li>
                                             ))}
                                         </ul>
@@ -840,7 +848,7 @@ function App() {
                                         <ul className="summary-list">
                                             {activeSuggestions.map((item) => (
                                                 <li key={item.id}>
-                                                    <strong>{formatLocalTime(item.startAt)}</strong> {item.title}
+                                                    <strong>{formatTimeRange(item.startAt, item.endAt)}</strong> {item.title}
                                                 </li>
                                             ))}
                                         </ul>
@@ -856,7 +864,7 @@ function App() {
                                 {suggestions.map((suggestion) => (
                                     <article key={suggestion.id} className="suggestion-card">
                                         <div className="suggestion-head">
-                                            <strong>{formatLocalTime(suggestion.startAt)}</strong>
+                                            <strong>{formatTimeRange(suggestion.startAt, suggestion.endAt)}</strong>
                                             <span className={`badge state-${suggestion.status}`}>{suggestion.status}</span>
                                         </div>
                                         <h3>{suggestion.title}</h3>

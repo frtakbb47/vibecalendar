@@ -8,6 +8,16 @@ const effortWeight = {
 };
 
 const MIN_GAP_MINUTES = 20;
+const WORK_START_HOUR = 8;
+const WORK_END_HOUR = 21;
+
+const DURATION_BY_TYPE = {
+    recovery: 20,
+    eat: 30,
+    focus: 45,
+    study: 45,
+    meditate: 10
+};
 
 function minutesBetween(startIso, endIso) {
     return Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000);
@@ -31,6 +41,19 @@ export function getDayRange(dateKey) {
         startDay: startDay.toISOString(),
         endDay: endDay.toISOString()
     };
+}
+
+function getWorkWindow(range) {
+    const start = new Date(range.startDay);
+    const end = new Date(range.startDay);
+    start.setHours(WORK_START_HOUR, 0, 0, 0);
+    end.setHours(WORK_END_HOUR, 0, 0, 0);
+    return { start, end };
+}
+
+function roundToStep(date, stepMinutes) {
+    const stepMs = stepMinutes * 60 * 1000;
+    return new Date(Math.round(date.getTime() / stepMs) * stepMs);
 }
 
 function clampEventsToDay(events, range) {
@@ -84,6 +107,32 @@ function pushUnique(target, candidate) {
     if (!target.some((item) => item.type === candidate.type)) {
         target.push(candidate);
     }
+}
+
+function buildSuggestionWindow(gap, durationMins, indexOffset) {
+    const gapMinutes = minutesBetween(gap.startAt, gap.endAt);
+    const minutes = Math.min(durationMins, gapMinutes);
+    const maxOffset = Math.max(0, gapMinutes - minutes);
+    const offset = Math.min(indexOffset * 15, maxOffset);
+    const gapStart = new Date(gap.startAt);
+    const gapEnd = new Date(gap.endAt);
+    const start = new Date(gapStart.getTime() + offset * 60 * 1000);
+    const end = new Date(start.getTime() + minutes * 60 * 1000);
+    const roundedStart = roundToStep(start, 5);
+    let roundedEnd = roundToStep(end, 5);
+
+    if (roundedEnd <= roundedStart) {
+        roundedEnd = new Date(roundedStart.getTime() + minutes * 60 * 1000);
+    }
+
+    if (roundedEnd > gapEnd) {
+        roundedEnd = new Date(gapEnd);
+    }
+
+    return {
+        startAt: roundedStart.toISOString(),
+        endAt: roundedEnd.toISOString()
+    };
 }
 
 function generateSuggestionsFromGap(gap, previousEffort, nextEffort) {
@@ -146,7 +195,7 @@ function generateSuggestionsFromGap(gap, previousEffort, nextEffort) {
         });
     }
 
-    if (duration >= 45 && endHour >= 12) {
+    if (duration >= 60 && endHour >= 12) {
         pushUnique(candidates, {
             type: 'focus',
             title: 'Quick admin sweep',
@@ -162,7 +211,7 @@ function generateSuggestionsFromGap(gap, previousEffort, nextEffort) {
         });
     }
 
-    const maxCount = duration >= 120 ? 3 : duration >= 60 ? 2 : 1;
+    const maxCount = duration >= 150 ? 3 : duration >= 60 ? 2 : 1;
     const recovery = candidates.find((item) => item.type === 'recovery');
     const others = candidates.filter((item) => item.type !== 'recovery');
     const ordered = recovery ? [recovery, ...shuffle(others)] : shuffle(others);
@@ -211,6 +260,27 @@ function buildGapWindows(events) {
     return gaps;
 }
 
+function clampGapToWorkHours(gap, range) {
+    const workWindow = getWorkWindow(range);
+    const start = Math.max(new Date(gap.startAt).getTime(), workWindow.start.getTime());
+    const end = Math.min(new Date(gap.endAt).getTime(), workWindow.end.getTime());
+
+    if (end <= start) {
+        return null;
+    }
+
+    const minutes = Math.round((end - start) / 60000);
+    if (minutes < MIN_GAP_MINUTES) {
+        return null;
+    }
+
+    return {
+        ...gap,
+        startAt: new Date(start).toISOString(),
+        endAt: new Date(end).toISOString()
+    };
+}
+
 async function shouldSuppressSuggestion(db, userId, contextKey, type, allowRepeat) {
     if (!allowRepeat) {
         const duplicate = await db.get(
@@ -243,7 +313,7 @@ async function shouldSuppressSuggestion(db, userId, contextKey, type, allowRepea
 export async function runSuggestionEngine(db, userId, options = {}) {
     const range = getDayRange(options.date);
     const events = clampEventsToDay(await getDayEvents(db, userId, range), range);
-    const gaps = buildGapWindows(events);
+    let gaps = buildGapWindows(events);
 
     if (options.refresh) {
         await db.run(
@@ -258,7 +328,13 @@ export async function runSuggestionEngine(db, userId, options = {}) {
     }
 
     if (events.length === 0) {
-        gaps.push({ startAt: range.startDay, endAt: range.endDay, previousEvent: null, nextEvent: null });
+        const workWindow = getWorkWindow(range);
+        gaps = [{
+            startAt: workWindow.start.toISOString(),
+            endAt: workWindow.end.toISOString(),
+            previousEvent: null,
+            nextEvent: null
+        }];
     } else {
         const first = events[0];
         const last = events[events.length - 1];
@@ -269,6 +345,8 @@ export async function runSuggestionEngine(db, userId, options = {}) {
             gaps.push({ startAt: last.endAt, endAt: range.endDay, previousEvent: last, nextEvent: null });
         }
     }
+
+    gaps = gaps.map((gap) => clampGapToWorkHours(gap, range)).filter(Boolean);
 
     if (gaps.length === 0) {
         return [];
@@ -281,8 +359,9 @@ export async function runSuggestionEngine(db, userId, options = {}) {
         const nextEffort = effortWeight[gap.nextEvent?.effortLevel || 'Low'] || 1;
         const suggestions = generateSuggestionsFromGap(gap, previousEffort, nextEffort);
 
-        for (const suggestion of suggestions) {
-            const contextKey = `${range.dateKey}:${gap.startAt}-${gap.endAt}:${suggestion.type}`;
+        for (const [index, suggestion] of suggestions.entries()) {
+            const window = buildSuggestionWindow(gap, DURATION_BY_TYPE[suggestion.type] || 30, index);
+            const contextKey = `${range.dateKey}:${window.startAt}-${window.endAt}:${suggestion.type}`;
             const suppressed = await shouldSuppressSuggestion(db, userId, contextKey, suggestion.type, Boolean(options.refresh));
             if (suppressed) {
                 continue;
@@ -302,15 +381,15 @@ export async function runSuggestionEngine(db, userId, options = {}) {
                 suggestion.type,
                 suggestion.title,
                 suggestion.rationale,
-                gap.startAt,
-                gap.endAt,
-                0.78,
+                window.startAt,
+                window.endAt,
+                0.82,
                 priorityScore,
                 contextKey,
                 createdAt
             );
 
-            created.push({ id, ...suggestion, startAt: gap.startAt, endAt: gap.endAt, priorityScore });
+            created.push({ id, ...suggestion, startAt: window.startAt, endAt: window.endAt, priorityScore });
         }
     }
 

@@ -456,6 +456,19 @@ app.post('/api/suggestions/:id/action', requireAuth, async (request, response) =
         return;
     }
 
+    const suggestion = await db.get(
+        `SELECT id, title, start_at AS startAt, end_at AS endAt
+		 FROM suggestions
+		 WHERE id = ? AND user_id = ?`,
+        request.params.id,
+        request.user.id
+    );
+
+    if (!suggestion) {
+        response.status(404).json({ error: 'Suggestion not found.' });
+        return;
+    }
+
     await db.run(
         `UPDATE suggestions
 		 SET status = ?, acted_at = ?
@@ -466,7 +479,34 @@ app.post('/api/suggestions/:id/action', requireAuth, async (request, response) =
         request.user.id
     );
 
-    response.json({ ok: true });
+    let createdEvent = null;
+    if (parsed.data.action === 'added') {
+        const eventId = randomUUID();
+        const now = new Date().toISOString();
+        await db.run(
+            `INSERT INTO events (
+                id, user_id, connected_calendar_id, title, description, location_text,
+                start_at, end_at, source_visibility, is_busy_block_only, effort_level, created_by, created_at, updated_at
+            ) VALUES (?, ?, NULL, ?, NULL, NULL, ?, ?, 'standard', 0, NULL, 'suggestion', ?, ?)`,
+            eventId,
+            request.user.id,
+            suggestion.title,
+            suggestion.startAt,
+            suggestion.endAt,
+            now,
+            now
+        );
+
+        createdEvent = await db.get(
+            `SELECT id, COALESCE(title, 'Hidden calendar block') AS title, start_at AS startAt,
+                    end_at AS endAt, effort_level AS effortLevel, source_visibility AS sourceVisibility
+             FROM events
+             WHERE id = ?`,
+            eventId
+        );
+    }
+
+    response.json({ ok: true, createdEvent });
 });
 
 app.get('/api/morning-summary', requireAuth, async (request, response) => {
