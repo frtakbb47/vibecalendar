@@ -19,6 +19,119 @@ const DURATION_BY_TYPE = {
     meditate: 10
 };
 
+const TIME_BUCKETS = [
+    { id: 'morning', start: 8, end: 11 },
+    { id: 'midday', start: 11, end: 14 },
+    { id: 'afternoon', start: 14, end: 18 },
+    { id: 'evening', start: 18, end: 21 }
+];
+
+const TEMPLATE_LIBRARY = [
+    {
+        id: 'reset-walk',
+        type: 'recovery',
+        title: 'Reset walk before the next class',
+        rationale: 'After a heavy class, a short walk helps your brain reset before the next block.',
+        min: 20,
+        duration: 20,
+        buckets: ['morning', 'midday', 'afternoon', 'evening'],
+        requires: { afterHeavy: true }
+    },
+    {
+        id: 'lunch-hydrate',
+        type: 'eat',
+        title: 'Grab lunch + hydrate',
+        rationale: 'This gap is perfect for food and water so you do not crash later.',
+        min: 20,
+        duration: 30,
+        buckets: ['midday'],
+        anchorHour: 12
+    },
+    {
+        id: 'snack-break',
+        type: 'eat',
+        title: 'Snack + water break',
+        rationale: 'A short refuel now keeps your energy steady for the next block.',
+        min: 15,
+        duration: 20,
+        buckets: ['afternoon', 'evening'],
+        anchorHour: 15
+    },
+    {
+        id: 'preview-notes',
+        type: 'study',
+        title: 'Preview notes for the next class',
+        rationale: 'A quick preview now makes the next high-effort class feel easier.',
+        min: 20,
+        duration: 25,
+        buckets: ['morning', 'midday', 'afternoon'],
+        requires: { beforeHeavy: true }
+    },
+    {
+        id: 'problem-set',
+        type: 'study',
+        title: 'Study sprint: one problem set',
+        rationale: 'Use this gap to finish one concrete task and keep momentum.',
+        min: 40,
+        duration: 45,
+        buckets: ['afternoon', 'evening']
+    },
+    {
+        id: 'start-outline',
+        type: 'focus',
+        title: 'Start an assignment outline',
+        rationale: 'Drafting an outline now makes the final write-up faster later.',
+        min: 30,
+        duration: 40,
+        buckets: ['morning', 'afternoon']
+    },
+    {
+        id: 'admin-sweep',
+        type: 'focus',
+        title: 'Campus admin clean-up',
+        rationale: 'Use a longer gap to reply to emails, plan the week, or check deadlines.',
+        min: 45,
+        duration: 45,
+        buckets: ['midday', 'afternoon']
+    },
+    {
+        id: 'office-hours-prep',
+        type: 'focus',
+        title: 'Office hours prep',
+        rationale: 'Jot 2-3 questions now so you get more value from office hours later.',
+        min: 20,
+        duration: 25,
+        buckets: ['morning', 'midday']
+    },
+    {
+        id: 'library-block',
+        type: 'study',
+        title: 'Library focus block',
+        rationale: 'A longer gap is a good chance to lock in a deep focus session.',
+        min: 60,
+        duration: 60,
+        buckets: ['afternoon', 'evening']
+    },
+    {
+        id: 'stretch-reset',
+        type: 'recovery',
+        title: 'Stretch + reset',
+        rationale: 'A short stretch break keeps energy steady between classes.',
+        min: 15,
+        duration: 15,
+        buckets: ['morning', 'midday', 'afternoon', 'evening']
+    },
+    {
+        id: 'breathing-reset',
+        type: 'meditate',
+        title: '5-minute breathe + reset',
+        rationale: 'Short recovery breaks keep focus steady between classes.',
+        min: 10,
+        duration: 10,
+        buckets: ['morning', 'midday', 'afternoon', 'evening']
+    }
+];
+
 function minutesBetween(startIso, endIso) {
     return Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000);
 }
@@ -92,6 +205,10 @@ function scorePriority(type, beforeEffort) {
     return 3;
 }
 
+function bucketForHour(hour) {
+    return TIME_BUCKETS.find((bucket) => hour >= bucket.start && hour < bucket.end)?.id || 'evening';
+}
+
 function shuffle(list) {
     const items = [...list];
     for (let i = items.length - 1; i > 0; i -= 1) {
@@ -103,27 +220,28 @@ function shuffle(list) {
     return items;
 }
 
-function pushUnique(target, candidate) {
-    if (!target.some((item) => item.type === candidate.type)) {
-        target.push(candidate);
-    }
-}
-
-function buildSuggestionWindow(gap, durationMins, indexOffset) {
+function buildSuggestionWindow(gap, template, indexOffset) {
     const gapMinutes = minutesBetween(gap.startAt, gap.endAt);
-    const minutes = Math.min(durationMins, gapMinutes);
-    const maxOffset = Math.max(0, gapMinutes - minutes);
-    const offset = Math.min(indexOffset * 15, maxOffset);
+    const duration = Math.min(template.duration, gapMinutes);
     const gapStart = new Date(gap.startAt);
     const gapEnd = new Date(gap.endAt);
-    const start = new Date(gapStart.getTime() + offset * 60 * 1000);
-    const end = new Date(start.getTime() + minutes * 60 * 1000);
-    const roundedStart = roundToStep(start, 5);
-    let roundedEnd = roundToStep(end, 5);
 
-    if (roundedEnd <= roundedStart) {
-        roundedEnd = new Date(roundedStart.getTime() + minutes * 60 * 1000);
+    let start = new Date(gapStart);
+    if (template.anchorHour !== undefined) {
+        const anchor = new Date(gapStart);
+        anchor.setHours(template.anchorHour, template.anchorMinute || 0, 0, 0);
+        if (anchor >= gapStart && anchor <= new Date(gapEnd.getTime() - duration * 60 * 1000)) {
+            start = anchor;
+        }
     }
+
+    if (start.getTime() === gapStart.getTime()) {
+        const offsetMinutes = Math.min(indexOffset * 20, Math.max(0, gapMinutes - duration));
+        start = new Date(gapStart.getTime() + offsetMinutes * 60 * 1000);
+    }
+
+    const roundedStart = roundToStep(start, 5);
+    let roundedEnd = roundToStep(new Date(roundedStart.getTime() + duration * 60 * 1000), 5);
 
     if (roundedEnd > gapEnd) {
         roundedEnd = new Date(gapEnd);
@@ -135,88 +253,89 @@ function buildSuggestionWindow(gap, durationMins, indexOffset) {
     };
 }
 
-function generateSuggestionsFromGap(gap, previousEffort, nextEffort) {
-    const duration = minutesBetween(gap.startAt, gap.endAt);
-    if (duration < MIN_GAP_MINUTES) {
-        return [];
-    }
-
+function buildCandidates(context, prefs, allowShuffle) {
     const candidates = [];
+    const bucketScore = prefs.bucketScore || {};
+    const typeScore = prefs.typeScore || {};
 
-    if (previousEffort >= 3) {
-        pushUnique(candidates, {
-            type: 'recovery',
-            title: 'Reset walk before the next class',
-            rationale: 'After a heavy class, a short walk helps your brain reset before the next block.'
-        });
+    for (const template of TEMPLATE_LIBRARY) {
+        if (context.duration < template.min) {
+            continue;
+        }
+
+        if (template.requires?.afterHeavy && !context.afterHeavy) {
+            continue;
+        }
+
+        if (template.requires?.beforeHeavy && !context.beforeHeavy) {
+            continue;
+        }
+
+        let score = 0;
+        if (template.buckets?.includes(context.bucket)) {
+            score += 2;
+        } else {
+            score -= 1;
+        }
+
+        if (context.afterHeavy && template.type === 'recovery') {
+            score += 3;
+        }
+
+        if (context.beforeHeavy && (template.type === 'study' || template.type === 'focus')) {
+            score += 2;
+        }
+
+        if (context.dayLoad >= 7 && template.type === 'recovery') {
+            score += 2;
+        }
+
+        if (context.dayLoad <= 3 && template.type === 'study') {
+            score += 1;
+        }
+
+        if (typeScore[template.type]) {
+            score += typeScore[template.type] * 2;
+        }
+
+        if (bucketScore[context.bucket]) {
+            score += bucketScore[context.bucket] * 1.5;
+        }
+
+        const durationDelta = Math.abs(context.duration - template.duration);
+        if (durationDelta <= 10) {
+            score += 1;
+        } else if (durationDelta <= 25) {
+            score += 0.5;
+        }
+
+        if (allowShuffle) {
+            score += (Math.random() - 0.5) * 0.6;
+        }
+
+        candidates.push({ template, score });
     }
 
-    const startHour = new Date(gap.startAt).getHours();
-    const endHour = new Date(gap.endAt).getHours();
-    const anchorHour = startHour < 6 ? 9 : startHour;
+    candidates.sort((a, b) => b.score - a.score);
 
-    if (anchorHour >= 7 && anchorHour <= 10 && duration >= 30) {
-        pushUnique(candidates, {
-            type: 'focus',
-            title: 'Knock out a quick assignment',
-            rationale: 'Use this morning gap to finish a small task before classes stack up.'
-        });
+    const maxCount = context.duration >= 150 ? 3 : context.duration >= 60 ? 2 : 1;
+    const selected = [];
+    const usedTypes = new Set();
+
+    for (const item of candidates) {
+        if (selected.length >= maxCount) {
+            break;
+        }
+
+        if (usedTypes.has(item.template.type)) {
+            continue;
+        }
+
+        selected.push(item.template);
+        usedTypes.add(item.template.type);
     }
 
-    if (anchorHour >= 11 && anchorHour <= 14 && duration >= 20) {
-        pushUnique(candidates, {
-            type: 'eat',
-            title: 'Grab lunch + hydrate',
-            rationale: 'This gap is perfect for food and water so you do not crash later.'
-        });
-    }
-
-    if (nextEffort >= 3 && duration >= 25) {
-        pushUnique(candidates, {
-            type: 'study',
-            title: 'Preview notes for the next class',
-            rationale: 'A quick preview now makes the next high-effort class feel easier.'
-        });
-    }
-
-    if (anchorHour >= 15 && anchorHour <= 18 && duration >= 30) {
-        pushUnique(candidates, {
-            type: 'study',
-            title: 'Study sprint: one problem set',
-            rationale: 'Use this gap to finish one concrete task and keep momentum.'
-        });
-    }
-
-    if (anchorHour >= 18 && anchorHour <= 21 && duration >= 30) {
-        pushUnique(candidates, {
-            type: 'recovery',
-            title: 'Decompress before you head home',
-            rationale: 'A short reset now helps you end the day with energy.'
-        });
-    }
-
-    if (duration >= 60 && endHour >= 12) {
-        pushUnique(candidates, {
-            type: 'focus',
-            title: 'Campus admin clean-up',
-            rationale: 'Use a longer gap to reply to emails, plan the week, or check deadlines.'
-        });
-    }
-
-    if (candidates.length === 0) {
-        candidates.push({
-            type: 'meditate',
-            title: '5-minute breathe + reset',
-            rationale: 'Short recovery breaks keep focus steady between classes.'
-        });
-    }
-
-    const maxCount = duration >= 150 ? 3 : duration >= 60 ? 2 : 1;
-    const recovery = candidates.find((item) => item.type === 'recovery');
-    const others = candidates.filter((item) => item.type !== 'recovery');
-    const ordered = recovery ? [recovery, ...shuffle(others)] : shuffle(others);
-
-    return ordered.slice(0, Math.min(maxCount, ordered.length));
+    return selected;
 }
 
 async function getDayEvents(db, userId, range) {
@@ -302,12 +421,72 @@ async function shouldSuppressSuggestion(db, userId, contextKey, type, allowRepea
      WHERE user_id = ?
        AND type = ?
        AND status = 'ignored'
-       AND created_at >= datetime('now', '-7 days')`,
+       AND created_at >= datetime('now', '-21 days')`,
         userId,
         type
     );
 
-    return (ignoredCount?.total || 0) >= 3;
+    return (ignoredCount?.total || 0) >= 4;
+}
+
+async function getPreferenceStats(db, userId) {
+    const typeRows = await db.all(
+        `SELECT type,
+                SUM(CASE WHEN status = 'added' THEN 1 ELSE 0 END) AS added,
+                SUM(CASE WHEN status = 'ignored' THEN 1 ELSE 0 END) AS ignored
+         FROM suggestions
+         WHERE user_id = ?
+           AND created_at >= datetime('now', '-21 days')
+         GROUP BY type`,
+        userId
+    );
+
+    const typeScore = {};
+    for (const row of typeRows) {
+        const total = (row.added || 0) + (row.ignored || 0);
+        typeScore[row.type] = total ? (row.added - row.ignored) / total : 0;
+    }
+
+    const hourRows = await db.all(
+        `SELECT CAST(strftime('%H', start_at) AS INTEGER) AS hour,
+                SUM(CASE WHEN status = 'added' THEN 1 ELSE 0 END) AS added,
+                SUM(CASE WHEN status = 'ignored' THEN 1 ELSE 0 END) AS ignored
+         FROM suggestions
+         WHERE user_id = ?
+           AND created_at >= datetime('now', '-21 days')
+         GROUP BY hour`,
+        userId
+    );
+
+    const bucketTotals = {};
+    const bucketScore = {};
+    for (const row of hourRows) {
+        const bucket = bucketForHour(row.hour);
+        if (!bucketTotals[bucket]) {
+            bucketTotals[bucket] = { added: 0, ignored: 0 };
+        }
+        bucketTotals[bucket].added += row.added || 0;
+        bucketTotals[bucket].ignored += row.ignored || 0;
+    }
+
+    for (const bucket of TIME_BUCKETS.map((item) => item.id)) {
+        const totals = bucketTotals[bucket] || { added: 0, ignored: 0 };
+        const total = totals.added + totals.ignored;
+        bucketScore[bucket] = total ? (totals.added - totals.ignored) / total : 0;
+    }
+
+    return { typeScore, bucketScore };
+}
+
+function computeDayLoad(events) {
+    if (events.length === 0) return 0;
+    let load = 0;
+    for (const event of events) {
+        const durationHours = minutesBetween(event.startAt, event.endAt) / 60;
+        const weight = effortWeight[event.effortLevel || 'Low'] || 1;
+        load += durationHours * weight;
+    }
+    return Number(load.toFixed(1));
 }
 
 export async function runSuggestionEngine(db, userId, options = {}) {
@@ -329,12 +508,14 @@ export async function runSuggestionEngine(db, userId, options = {}) {
 
     if (events.length === 0) {
         const workWindow = getWorkWindow(range);
-        gaps = [{
-            startAt: workWindow.start.toISOString(),
-            endAt: workWindow.end.toISOString(),
-            previousEvent: null,
-            nextEvent: null
-        }];
+        const midday = new Date(workWindow.start);
+        midday.setHours(12, 0, 0, 0);
+        const afternoon = new Date(workWindow.start);
+        afternoon.setHours(15, 30, 0, 0);
+        gaps = [
+            { startAt: workWindow.start.toISOString(), endAt: midday.toISOString(), previousEvent: null, nextEvent: null },
+            { startAt: afternoon.toISOString(), endAt: workWindow.end.toISOString(), previousEvent: null, nextEvent: null }
+        ];
     } else {
         const first = events[0];
         const last = events[events.length - 1];
@@ -352,24 +533,36 @@ export async function runSuggestionEngine(db, userId, options = {}) {
         return [];
     }
 
+    const prefs = await getPreferenceStats(db, userId);
+    const dayLoad = computeDayLoad(events);
     const created = [];
 
     for (const gap of gaps) {
         const previousEffort = effortWeight[gap.previousEvent?.effortLevel || 'Low'] || 1;
         const nextEffort = effortWeight[gap.nextEvent?.effortLevel || 'Low'] || 1;
-        const suggestions = generateSuggestionsFromGap(gap, previousEffort, nextEffort);
+        const gapDuration = minutesBetween(gap.startAt, gap.endAt);
+        const startHour = new Date(gap.startAt).getHours();
+        const context = {
+            duration: gapDuration,
+            bucket: bucketForHour(startHour),
+            afterHeavy: previousEffort >= 3,
+            beforeHeavy: nextEffort >= 3,
+            dayLoad
+        };
 
-        for (const [index, suggestion] of suggestions.entries()) {
-            const window = buildSuggestionWindow(gap, DURATION_BY_TYPE[suggestion.type] || 30, index);
-            const contextKey = `${range.dateKey}:${window.startAt}-${window.endAt}:${suggestion.type}`;
-            const suppressed = await shouldSuppressSuggestion(db, userId, contextKey, suggestion.type, Boolean(options.refresh));
+        const templates = buildCandidates(context, prefs, Boolean(options.refresh));
+
+        for (const [index, template] of templates.entries()) {
+            const window = buildSuggestionWindow(gap, template, index);
+            const contextKey = `${range.dateKey}:${window.startAt}-${window.endAt}:${template.type}`;
+            const suppressed = await shouldSuppressSuggestion(db, userId, contextKey, template.type, Boolean(options.refresh));
             if (suppressed) {
                 continue;
             }
 
             const id = randomUUID();
             const createdAt = new Date().toISOString();
-            const priorityScore = scorePriority(suggestion.type, previousEffort);
+            const priorityScore = scorePriority(template.type, previousEffort);
 
             await db.run(
                 `INSERT INTO suggestions (
@@ -378,18 +571,18 @@ export async function runSuggestionEngine(db, userId, options = {}) {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
                 id,
                 userId,
-                suggestion.type,
-                suggestion.title,
-                suggestion.rationale,
+                template.type,
+                template.title,
+                template.rationale,
                 window.startAt,
                 window.endAt,
-                0.82,
+                0.86,
                 priorityScore,
                 contextKey,
                 createdAt
             );
 
-            created.push({ id, ...suggestion, startAt: window.startAt, endAt: window.endAt, priorityScore });
+            created.push({ id, ...template, startAt: window.startAt, endAt: window.endAt, priorityScore });
         }
     }
 

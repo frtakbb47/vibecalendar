@@ -177,7 +177,7 @@ export function apiSuggestions(token: string, date?: string) {
 }
 
 export function apiSuggestionAction(token: string, id: string, action: 'added' | 'ignored') {
-    return request<{ ok: boolean }>(`/api/suggestions/${id}/action`, {
+    return request<{ ok: boolean; createdEvent?: EventItem | null }>(`/api/suggestions/${id}/action`, {
         method: 'POST',
         body: JSON.stringify({ action })
     }, token);
