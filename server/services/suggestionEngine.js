@@ -52,6 +52,8 @@ const TITLE_CATEGORY_MAP = [
     { category: 'travel', tokens: ['travel', 'commute', 'flight', 'bus', 'train'] }
 ];
 
+const RECOVERY_ANCHOR_CATEGORIES = ['class', 'study', 'work', 'meeting', 'travel'];
+
 const TEMPLATE_LIBRARY = [
     {
         id: 'reset-walk',
@@ -181,6 +183,10 @@ function inferCategoryFromTitle(title) {
 function resolveEventCategory(event) {
     if (!event) return null;
     return normalizeCategory(event.category) || inferCategoryFromTitle(event.title) || 'other';
+}
+
+function hasAdjacentCategory(context, category) {
+    return context.previousCategory === category || context.nextCategory === category;
 }
 
 function minutesBetween(startIso, endIso) {
@@ -330,6 +336,21 @@ function buildCandidates(context, prefs, allowShuffle) {
 
         if (template.requires?.beforeCategory) {
             if (!context.nextCategory || !template.requires.beforeCategory.includes(context.nextCategory)) {
+                continue;
+            }
+        }
+
+        if (template.type === 'eat' && hasAdjacentCategory(context, 'meal')) {
+            continue;
+        }
+
+        if ((template.type === 'recovery' || template.type === 'meditate') && hasAdjacentCategory(context, 'wellness')) {
+            continue;
+        }
+
+        if (template.type === 'recovery' || template.type === 'meditate') {
+            const anchored = context.afterHeavy || context.dayLoad >= 6 || RECOVERY_ANCHOR_CATEGORIES.includes(context.previousCategory);
+            if (!anchored) {
                 continue;
             }
         }
