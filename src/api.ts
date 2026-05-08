@@ -27,6 +27,7 @@ export type EventItem = {
     endAt: string;
     effortLevel: 'Low' | 'Medium' | 'High' | 'Very High' | null;
     sourceVisibility: 'standard' | 'hidden';
+    category: string | null;
 };
 
 export type Suggestion = {
@@ -147,10 +148,17 @@ export function apiEvents(token: string) {
     return request<EventItem[]>('/api/events', {}, token);
 }
 
-export function apiCreateEvent(token: string, input: { title?: string; startAt: string; endAt: string; sourceVisibility?: 'standard' | 'hidden'; isBusyBlockOnly?: boolean }) {
+export function apiCreateEvent(token: string, input: { title?: string; startAt: string; endAt: string; sourceVisibility?: 'standard' | 'hidden'; isBusyBlockOnly?: boolean; category?: string | null }) {
     return request<EventItem>('/api/events', {
         method: 'POST',
         body: JSON.stringify(input)
+    }, token);
+}
+
+export function apiUpdateCategory(token: string, eventId: string, category: string | null) {
+    return request<{ ok: boolean }>(`/api/events/${eventId}/category`, {
+        method: 'PATCH',
+        body: JSON.stringify({ category })
     }, token);
 }
 

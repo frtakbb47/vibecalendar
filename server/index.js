@@ -18,6 +18,28 @@ const app = express();
 app.use(cors({ origin: config.appUrl, credentials: true }));
 app.use(express.json());
 
+const EVENT_CATEGORIES = [
+    'class',
+    'study',
+    'work',
+    'meeting',
+    'personal',
+    'wellness',
+    'meal',
+    'social',
+    'errand',
+    'travel',
+    'other'
+];
+
+const SUGGESTION_CATEGORY_MAP = {
+    recovery: 'wellness',
+    eat: 'meal',
+    focus: 'work',
+    study: 'study',
+    meditate: 'wellness'
+};
+
 function makeToken(user) {
     return jwt.sign(
         {
@@ -340,7 +362,7 @@ app.get('/api/events', requireAuth, async (request, response) => {
     const db = await getDb();
     const events = await db.all(
         `SELECT id, COALESCE(title, 'Hidden calendar block') AS title, start_at AS startAt,
-						end_at AS endAt, effort_level AS effortLevel, source_visibility AS sourceVisibility
+						end_at AS endAt, effort_level AS effortLevel, source_visibility AS sourceVisibility, category
 		 FROM events
 		 WHERE user_id = ?
 		 ORDER BY start_at ASC`,
@@ -356,7 +378,8 @@ app.post('/api/events', requireAuth, async (request, response) => {
         startAt: z.string().min(1),
         endAt: z.string().min(1),
         sourceVisibility: z.enum(['standard', 'hidden']).optional(),
-        isBusyBlockOnly: z.boolean().optional()
+        isBusyBlockOnly: z.boolean().optional(),
+        category: z.enum(EVENT_CATEGORIES).optional()
     });
 
     const parsed = schema.safeParse(request.body);
@@ -371,8 +394,8 @@ app.post('/api/events', requireAuth, async (request, response) => {
     await db.run(
         `INSERT INTO events (
             id, user_id, connected_calendar_id, title, description, location_text,
-            start_at, end_at, source_visibility, is_busy_block_only, effort_level, created_by, created_at, updated_at
-        ) VALUES (?, ?, NULL, ?, NULL, NULL, ?, ?, ?, ?, NULL, 'user', ?, ?)`,
+            start_at, end_at, source_visibility, is_busy_block_only, effort_level, category, created_by, created_at, updated_at
+        ) VALUES (?, ?, NULL, ?, NULL, NULL, ?, ?, ?, ?, NULL, ?, 'user', ?, ?)`,
         eventId,
         request.user.id,
         parsed.data.title || null,
@@ -380,12 +403,13 @@ app.post('/api/events', requireAuth, async (request, response) => {
         parsed.data.endAt,
         parsed.data.sourceVisibility || 'standard',
         parsed.data.isBusyBlockOnly ? 1 : 0,
+        parsed.data.category || null,
         now,
         now
     );
 
     const created = await db.get(
-        `SELECT id, COALESCE(title, 'Hidden calendar block') AS title, start_at AS startAt, end_at AS endAt, effort_level AS effortLevel, source_visibility AS sourceVisibility
+        `SELECT id, COALESCE(title, 'Hidden calendar block') AS title, start_at AS startAt, end_at AS endAt, effort_level AS effortLevel, source_visibility AS sourceVisibility, category
          FROM events WHERE id = ?`,
         eventId
     );
@@ -408,6 +432,29 @@ app.patch('/api/events/:id/effort', requireAuth, async (request, response) => {
     await db.run(
         'UPDATE events SET effort_level = ?, updated_at = ? WHERE id = ? AND user_id = ?',
         parsed.data.effortLevel,
+        new Date().toISOString(),
+        request.params.id,
+        request.user.id
+    );
+
+    response.json({ ok: true });
+});
+
+app.patch('/api/events/:id/category', requireAuth, async (request, response) => {
+    const db = await getDb();
+    const schema = z.object({
+        category: z.enum(EVENT_CATEGORIES).nullable()
+    });
+
+    const parsed = schema.safeParse(request.body);
+    if (!parsed.success) {
+        response.status(400).json({ error: 'Invalid category payload.' });
+        return;
+    }
+
+    await db.run(
+        'UPDATE events SET category = ?, updated_at = ? WHERE id = ? AND user_id = ?',
+        parsed.data.category,
         new Date().toISOString(),
         request.params.id,
         request.user.id
@@ -457,7 +504,7 @@ app.post('/api/suggestions/:id/action', requireAuth, async (request, response) =
     }
 
     const suggestion = await db.get(
-        `SELECT id, title, start_at AS startAt, end_at AS endAt
+        `SELECT id, title, start_at AS startAt, end_at AS endAt, type
 		 FROM suggestions
 		 WHERE id = ? AND user_id = ?`,
         request.params.id,
@@ -483,23 +530,25 @@ app.post('/api/suggestions/:id/action', requireAuth, async (request, response) =
     if (parsed.data.action === 'added') {
         const eventId = randomUUID();
         const now = new Date().toISOString();
+        const mappedCategory = SUGGESTION_CATEGORY_MAP[suggestion.type] || null;
         await db.run(
             `INSERT INTO events (
                 id, user_id, connected_calendar_id, title, description, location_text,
-                start_at, end_at, source_visibility, is_busy_block_only, effort_level, created_by, created_at, updated_at
-            ) VALUES (?, ?, NULL, ?, NULL, NULL, ?, ?, 'standard', 0, NULL, 'suggestion', ?, ?)`,
+                start_at, end_at, source_visibility, is_busy_block_only, effort_level, category, created_by, created_at, updated_at
+            ) VALUES (?, ?, NULL, ?, NULL, NULL, ?, ?, 'standard', 0, NULL, ?, 'suggestion', ?, ?)`,
             eventId,
             request.user.id,
             suggestion.title,
             suggestion.startAt,
             suggestion.endAt,
+            mappedCategory,
             now,
             now
         );
 
         createdEvent = await db.get(
             `SELECT id, COALESCE(title, 'Hidden calendar block') AS title, start_at AS startAt,
-                    end_at AS endAt, effort_level AS effortLevel, source_visibility AS sourceVisibility
+                    end_at AS endAt, effort_level AS effortLevel, source_visibility AS sourceVisibility, category
              FROM events
              WHERE id = ?`,
             eventId
@@ -543,7 +592,7 @@ app.get('/api/morning-summary', requireAuth, async (request, response) => {
     response.json({
         headline:
             (eventCount?.total || 0) > 4
-                ? 'Today is packed. Prioritize recovery moments between classes.'
+                ? 'Today is packed. Prioritize recovery moments between blocks.'
                 : 'Your day looks manageable. Keep a light rhythm and protect focus windows.',
         topSuggestions,
         summaryNotificationCreated: Boolean(summaryNotification)

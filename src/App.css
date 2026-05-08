@@ -637,6 +637,10 @@ input[type='checkbox'] {
     gap: 10px;
 }
 
+.event-row .row-actions {
+    margin-top: 0;
+}
+
 select {
     border: 1px solid var(--line);
     border-radius: 10px;

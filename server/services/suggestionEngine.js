@@ -26,12 +26,38 @@ const TIME_BUCKETS = [
     { id: 'evening', start: 18, end: 21 }
 ];
 
+const EVENT_CATEGORIES = [
+    'class',
+    'study',
+    'work',
+    'meeting',
+    'personal',
+    'wellness',
+    'meal',
+    'social',
+    'errand',
+    'travel',
+    'other'
+];
+
+const TITLE_CATEGORY_MAP = [
+    { category: 'class', tokens: ['class', 'lecture', 'lab', 'seminar', 'tutorial', 'studio', 'recitation'] },
+    { category: 'study', tokens: ['study', 'library', 'homework', 'assignment', 'project', 'thesis', 'research', 'reading', 'paper'] },
+    { category: 'meeting', tokens: ['meeting', 'standup', 'sync', 'check-in', 'advising', 'office hours'] },
+    { category: 'work', tokens: ['work', 'shift', 'job', 'internship', 'client'] },
+    { category: 'wellness', tokens: ['gym', 'workout', 'run', 'yoga', 'meditation', 'therapy', 'doctor', 'dentist'] },
+    { category: 'meal', tokens: ['breakfast', 'lunch', 'dinner', 'brunch', 'snack', 'coffee'] },
+    { category: 'social', tokens: ['hangout', 'party', 'social', 'club', 'game', 'friends', 'date'] },
+    { category: 'errand', tokens: ['errand', 'grocery', 'shopping', 'pickup', 'drop off', 'bank'] },
+    { category: 'travel', tokens: ['travel', 'commute', 'flight', 'bus', 'train'] }
+];
+
 const TEMPLATE_LIBRARY = [
     {
         id: 'reset-walk',
         type: 'recovery',
-        title: 'Reset walk before the next class',
-        rationale: 'After a heavy class, a short walk helps your brain reset before the next block.',
+        title: 'Reset walk to clear your head',
+        rationale: 'After a heavy block, a short walk helps your brain reset and lower stress.',
         min: 20,
         duration: 20,
         buckets: ['morning', 'midday', 'afternoon', 'evening'],
@@ -60,12 +86,12 @@ const TEMPLATE_LIBRARY = [
     {
         id: 'preview-notes',
         type: 'study',
-        title: 'Preview notes for the next class',
-        rationale: 'A quick preview now makes the next high-effort class feel easier.',
+        title: 'Preview notes for the next session',
+        rationale: 'A quick preview now makes the next session feel easier to jump into.',
         min: 20,
         duration: 25,
         buckets: ['morning', 'midday', 'afternoon'],
-        requires: { beforeHeavy: true }
+        requires: { beforeCategory: ['class', 'study'] }
     },
     {
         id: 'problem-set',
@@ -116,7 +142,7 @@ const TEMPLATE_LIBRARY = [
         id: 'stretch-reset',
         type: 'recovery',
         title: 'Stretch + reset',
-        rationale: 'A short stretch break keeps energy steady between classes.',
+        rationale: 'A short stretch break keeps energy steady between blocks.',
         min: 15,
         duration: 15,
         buckets: ['morning', 'midday', 'afternoon', 'evening']
@@ -125,12 +151,37 @@ const TEMPLATE_LIBRARY = [
         id: 'breathing-reset',
         type: 'meditate',
         title: '5-minute breathe + reset',
-        rationale: 'Short recovery breaks keep focus steady between classes.',
+        rationale: 'Short recovery breaks keep focus steady between blocks.',
         min: 10,
         duration: 10,
         buckets: ['morning', 'midday', 'afternoon', 'evening']
     }
 ];
+
+function normalizeCategory(value) {
+    if (!value) return null;
+    const cleaned = String(value).trim().toLowerCase();
+    if (EVENT_CATEGORIES.includes(cleaned)) {
+        return cleaned;
+    }
+    return null;
+}
+
+function inferCategoryFromTitle(title) {
+    if (!title) return null;
+    const lowered = title.toLowerCase();
+    for (const entry of TITLE_CATEGORY_MAP) {
+        if (entry.tokens.some((token) => lowered.includes(token))) {
+            return entry.category;
+        }
+    }
+    return null;
+}
+
+function resolveEventCategory(event) {
+    if (!event) return null;
+    return normalizeCategory(event.category) || inferCategoryFromTitle(event.title) || 'other';
+}
 
 function minutesBetween(startIso, endIso) {
     return Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000);
@@ -271,6 +322,18 @@ function buildCandidates(context, prefs, allowShuffle) {
             continue;
         }
 
+        if (template.requires?.afterCategory) {
+            if (!context.previousCategory || !template.requires.afterCategory.includes(context.previousCategory)) {
+                continue;
+            }
+        }
+
+        if (template.requires?.beforeCategory) {
+            if (!context.nextCategory || !template.requires.beforeCategory.includes(context.nextCategory)) {
+                continue;
+            }
+        }
+
         let score = 0;
         if (template.buckets?.includes(context.bucket)) {
             score += 2;
@@ -340,7 +403,7 @@ function buildCandidates(context, prefs, allowShuffle) {
 
 async function getDayEvents(db, userId, range) {
     return db.all(
-        `SELECT id, title, start_at AS startAt, end_at AS endAt, effort_level AS effortLevel
+        `SELECT id, title, start_at AS startAt, end_at AS endAt, effort_level AS effortLevel, category
      FROM events
      WHERE user_id = ?
        AND start_at < ?
@@ -542,12 +605,16 @@ export async function runSuggestionEngine(db, userId, options = {}) {
         const nextEffort = effortWeight[gap.nextEvent?.effortLevel || 'Low'] || 1;
         const gapDuration = minutesBetween(gap.startAt, gap.endAt);
         const startHour = new Date(gap.startAt).getHours();
+        const previousCategory = resolveEventCategory(gap.previousEvent);
+        const nextCategory = resolveEventCategory(gap.nextEvent);
         const context = {
             duration: gapDuration,
             bucket: bucketForHour(startHour),
             afterHeavy: previousEffort >= 3,
             beforeHeavy: nextEffort >= 3,
-            dayLoad
+            dayLoad,
+            previousCategory,
+            nextCategory
         };
 
         const templates = buildCandidates(context, prefs, Boolean(options.refresh));

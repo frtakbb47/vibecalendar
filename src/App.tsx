@@ -18,6 +18,7 @@ import {
     apiSuggestionAction,
     apiSuggestions,
     apiUpdateConsent,
+    apiUpdateCategory,
     apiUpdateEffort,
     CalendarConnection,
     EventItem,
@@ -49,6 +50,21 @@ const DEMO_ACCOUNTS = [
 ];
 
 const TOKEN_KEY = 'vibecalendar_token';
+
+const EVENT_CATEGORY_OPTIONS = [
+    { value: '', label: 'Uncategorized' },
+    { value: 'class', label: 'Class' },
+    { value: 'study', label: 'Study' },
+    { value: 'work', label: 'Work' },
+    { value: 'meeting', label: 'Meeting' },
+    { value: 'personal', label: 'Personal' },
+    { value: 'wellness', label: 'Wellness' },
+    { value: 'meal', label: 'Meal' },
+    { value: 'social', label: 'Social' },
+    { value: 'errand', label: 'Errand' },
+    { value: 'travel', label: 'Travel' },
+    { value: 'other', label: 'Other' }
+];
 
 function formatLocalTime(iso: string) {
     return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -85,6 +101,11 @@ function formatDateLabel(dateKey: string) {
         month: 'long',
         day: 'numeric'
     });
+}
+
+function formatCategoryLabel(value: string | null | undefined) {
+    if (!value) return 'Uncategorized';
+    return value[0].toUpperCase() + value.slice(1);
 }
 
 function App() {
@@ -198,6 +219,7 @@ function App() {
     const [tempEventRange, setTempEventRange] = useState<{ startISO: string; endISO: string; columnKey: string } | null>(null);
     const [showQuickCreate, setShowQuickCreate] = useState(false);
     const [quickTitle, setQuickTitle] = useState('Quick Event');
+    const [quickCategory, setQuickCategory] = useState('');
     const HOUR_PX = 40;
     const [tourOpen, setTourOpen] = useState(false);
     const [tourStep, setTourStep] = useState(0);
@@ -488,6 +510,21 @@ function App() {
             setEvents(refreshed);
         } catch (updateError) {
             setError(updateError instanceof Error ? updateError.message : 'Failed to update effort level.');
+        }
+    }
+
+    async function updateCategory(eventId: string, category: string | null) {
+        if (!token) {
+            return;
+        }
+
+        setError('');
+        try {
+            await apiUpdateCategory(token, eventId, category);
+            const refreshed = await apiEvents(token);
+            setEvents(refreshed);
+        } catch (updateError) {
+            setError(updateError instanceof Error ? updateError.message : 'Failed to update category.');
         }
     }
 
@@ -1111,7 +1148,9 @@ function App() {
                                                 </p>
                                             </div>
                                             <span className="muted">
-                                                {eventItem.sourceVisibility === 'hidden' ? 'Private busy block' : eventItem.effortLevel || 'Unscored'}
+                                                {eventItem.sourceVisibility === 'hidden'
+                                                    ? 'Private busy block'
+                                                    : `${formatCategoryLabel(eventItem.category)} · ${eventItem.effortLevel || 'Unscored'}`}
                                             </span>
                                         </article>
                                     ))}
@@ -1128,6 +1167,16 @@ function App() {
                                         Title
                                         <input value={quickTitle} onChange={(e) => setQuickTitle(e.target.value)} />
                                     </label>
+                                    <label>
+                                        Category
+                                        <select value={quickCategory} onChange={(e) => setQuickCategory(e.target.value)}>
+                                            {EVENT_CATEGORY_OPTIONS.map((option) => (
+                                                <option key={option.value || 'none'} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
                                     <div className="actions">
                                         <button
                                             onClick={async () => {
@@ -1138,7 +1187,8 @@ function App() {
                                                             title: quickTitle || undefined,
                                                             startAt: tempEventRange.startISO,
                                                             endAt: tempEventRange.endISO,
-                                                            sourceVisibility: 'standard'
+                                                            sourceVisibility: 'standard',
+                                                            category: quickCategory || null
                                                         });
                                                         setEvents((prev) => [...prev, created]);
                                                     } else {
@@ -1149,13 +1199,15 @@ function App() {
                                                             startAt: tempEventRange.startISO,
                                                             endAt: tempEventRange.endISO,
                                                             effortLevel: null,
-                                                            sourceVisibility: 'standard'
+                                                            sourceVisibility: 'standard',
+                                                            category: quickCategory || null
                                                         };
                                                         setEvents((prev) => [...prev, newEv]);
                                                     }
                                                     setShowQuickCreate(false);
                                                     setTempEventRange(null);
                                                     setQuickTitle('Quick Event');
+                                                    setQuickCategory('');
                                                     setSelectedDateKey(tempEventRange.columnKey);
                                                 } catch (createError) {
                                                     setError(createError instanceof Error ? createError.message : 'Failed to create event.');
@@ -1164,7 +1216,7 @@ function App() {
                                         >
                                             Add
                                         </button>
-                                        <button className="ghost" onClick={() => { setShowQuickCreate(false); setTempEventRange(null); setQuickTitle('Quick Event'); }}>
+                                        <button className="ghost" onClick={() => { setShowQuickCreate(false); setTempEventRange(null); setQuickTitle('Quick Event'); setQuickCategory(''); }}>
                                             Cancel
                                         </button>
                                     </div>
@@ -1229,7 +1281,7 @@ function App() {
                             <div className="inline-row">
                                 <div>
                                     <h2>Manual Effort Tagging</h2>
-                                    <p className="muted">Pick a date and tag event intensity for that day.</p>
+                                    <p className="muted">Pick a date and tag event intensity + category for that day.</p>
                                 </div>
                                 <div className="date-controls">
                                     <input
@@ -1255,20 +1307,32 @@ function App() {
                                                     {formatLocalTime(eventItem.startAt)} - {formatLocalTime(eventItem.endAt)}
                                                 </p>
                                             </div>
-                                            <select
-                                                value={eventItem.effortLevel || 'Low'}
-                                                onChange={(input) =>
-                                                    updateEffort(
-                                                        eventItem.id,
-                                                        input.target.value as 'Low' | 'Medium' | 'High' | 'Very High'
-                                                    )
-                                                }
-                                            >
-                                                <option>Low</option>
-                                                <option>Medium</option>
-                                                <option>High</option>
-                                                <option>Very High</option>
-                                            </select>
+                                            <div className="row-actions">
+                                                <select
+                                                    value={eventItem.category || ''}
+                                                    onChange={(input) => updateCategory(eventItem.id, input.target.value || null)}
+                                                >
+                                                    {EVENT_CATEGORY_OPTIONS.map((option) => (
+                                                        <option key={option.value || 'none'} value={option.value}>
+                                                            {option.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <select
+                                                    value={eventItem.effortLevel || 'Low'}
+                                                    onChange={(input) =>
+                                                        updateEffort(
+                                                            eventItem.id,
+                                                            input.target.value as 'Low' | 'Medium' | 'High' | 'Very High'
+                                                        )
+                                                    }
+                                                >
+                                                    <option>Low</option>
+                                                    <option>Medium</option>
+                                                    <option>High</option>
+                                                    <option>Very High</option>
+                                                </select>
+                                            </div>
                                         </article>
                                     ))}
                                 </div>
