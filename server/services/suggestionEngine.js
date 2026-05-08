@@ -146,8 +146,8 @@ function generateSuggestionsFromGap(gap, previousEffort, nextEffort) {
     if (previousEffort >= 3) {
         pushUnique(candidates, {
             type: 'recovery',
-            title: '10-minute reset walk',
-            rationale: 'You just finished a high-effort block. A short reset can reduce mental overload.'
+            title: 'Reset walk before the next class',
+            rationale: 'After a heavy class, a short walk helps your brain reset before the next block.'
         });
     }
 
@@ -158,56 +158,56 @@ function generateSuggestionsFromGap(gap, previousEffort, nextEffort) {
     if (anchorHour >= 7 && anchorHour <= 10 && duration >= 30) {
         pushUnique(candidates, {
             type: 'focus',
-            title: 'Morning focus block',
-            rationale: 'Morning gaps are great for a single focused task before your day fills up.'
+            title: 'Knock out a quick assignment',
+            rationale: 'Use this morning gap to finish a small task before classes stack up.'
         });
     }
 
     if (anchorHour >= 11 && anchorHour <= 14 && duration >= 20) {
         pushUnique(candidates, {
             type: 'eat',
-            title: 'Quick meal + hydration break',
-            rationale: 'This gap is a good time to fuel up before your next block.'
+            title: 'Grab lunch + hydrate',
+            rationale: 'This gap is perfect for food and water so you do not crash later.'
         });
     }
 
     if (nextEffort >= 3 && duration >= 25) {
         pushUnique(candidates, {
             type: 'study',
-            title: '20-minute prep sprint',
-            rationale: 'A short prep now can lower stress for your next high-effort class.'
+            title: 'Preview notes for the next class',
+            rationale: 'A quick preview now makes the next high-effort class feel easier.'
         });
     }
 
     if (anchorHour >= 15 && anchorHour <= 18 && duration >= 30) {
         pushUnique(candidates, {
             type: 'study',
-            title: 'Focused study sprint',
-            rationale: 'A mid-afternoon sprint keeps momentum without draining your evening.'
+            title: 'Study sprint: one problem set',
+            rationale: 'Use this gap to finish one concrete task and keep momentum.'
         });
     }
 
     if (anchorHour >= 18 && anchorHour <= 21 && duration >= 30) {
         pushUnique(candidates, {
             type: 'recovery',
-            title: 'Evening decompression',
-            rationale: 'Use this space to reset so you can end the day with energy.'
+            title: 'Decompress before you head home',
+            rationale: 'A short reset now helps you end the day with energy.'
         });
     }
 
     if (duration >= 60 && endHour >= 12) {
         pushUnique(candidates, {
             type: 'focus',
-            title: 'Quick admin sweep',
-            rationale: 'Use a bigger gap to clear small tasks and reduce mental clutter.'
+            title: 'Campus admin clean-up',
+            rationale: 'Use a longer gap to reply to emails, plan the week, or check deadlines.'
         });
     }
 
     if (candidates.length === 0) {
         candidates.push({
             type: 'meditate',
-            title: '5-minute breathing reset',
-            rationale: 'Small recovery breaks can stabilize focus across the day.'
+            title: '5-minute breathe + reset',
+            rationale: 'Short recovery breaks keep focus steady between classes.'
         });
     }
 
