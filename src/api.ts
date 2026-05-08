@@ -61,6 +61,17 @@ export type ConsentPayload = {
     calendarWriteConsent: boolean;
 };
 
+function buildQuery(params: Record<string, string | undefined>) {
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+        if (value) {
+            search.set(key, value);
+        }
+    }
+    const query = search.toString();
+    return query ? `?${query}` : '';
+}
+
 async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
     const headers = new Headers(options.headers || {});
     headers.set('Content-Type', 'application/json');
@@ -150,14 +161,19 @@ export function apiUpdateEffort(token: string, eventId: string, effortLevel: 'Lo
     }, token);
 }
 
-export function apiRunSuggestions(token: string) {
-    return request<{ createdCount: number; notificationsCount: number }>('/api/suggestions/run', {
+export function apiRunSuggestions(token: string, options?: { date?: string; refresh?: boolean }) {
+    const query = buildQuery({
+        date: options?.date,
+        refresh: options?.refresh ? '1' : undefined
+    });
+    return request<{ createdCount: number; notificationsCount: number }>(`/api/suggestions/run${query}`, {
         method: 'POST'
     }, token);
 }
 
-export function apiSuggestions(token: string) {
-    return request<Suggestion[]>('/api/suggestions', {}, token);
+export function apiSuggestions(token: string, date?: string) {
+    const query = buildQuery({ date });
+    return request<Suggestion[]>(`/api/suggestions${query}`, {}, token);
 }
 
 export function apiSuggestionAction(token: string, id: string, action: 'added' | 'ignored') {
@@ -167,8 +183,9 @@ export function apiSuggestionAction(token: string, id: string, action: 'added' |
     }, token);
 }
 
-export function apiMorningSummary(token: string) {
-    return request<{ headline: string; topSuggestions: Suggestion[] }>('/api/morning-summary', {}, token);
+export function apiMorningSummary(token: string, date?: string) {
+    const query = buildQuery({ date });
+    return request<{ headline: string; topSuggestions: Suggestion[] }>(`/api/morning-summary${query}`, {}, token);
 }
 
 export function apiNotifications(token: string) {

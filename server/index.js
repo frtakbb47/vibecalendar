@@ -11,7 +11,7 @@ import { requireAuth } from './middleware/auth.js';
 import { exchangeOauthCode, getOauthStartPayload, pullIcalEvents } from './services/calendarProviders.js';
 import { createMorningSummaryNotification, createSuggestionNotifications } from './services/notificationEngine.js';
 import { seedUserDataIfEmpty } from './services/seedData.js';
-import { runSuggestionEngine } from './services/suggestionEngine.js';
+import { getDayRange, runSuggestionEngine } from './services/suggestionEngine.js';
 
 const app = express();
 
@@ -418,20 +418,31 @@ app.patch('/api/events/:id/effort', requireAuth, async (request, response) => {
 
 app.post('/api/suggestions/run', requireAuth, async (request, response) => {
     const db = await getDb();
-    const created = await runSuggestionEngine(db, request.user.id);
-    const notifications = await createSuggestionNotifications(db, request.user.id);
+    const dateParam = typeof request.query.date === 'string' ? request.query.date : null;
+    const refresh = request.query.refresh === 'true' || request.query.refresh === '1';
+    const range = getDayRange(dateParam || undefined);
+    const todayRange = getDayRange();
+    const created = await runSuggestionEngine(db, request.user.id, { date: range.dateKey, refresh });
+    const notifications = range.dateKey === todayRange.dateKey
+        ? await createSuggestionNotifications(db, request.user.id)
+        : [];
     response.json({ createdCount: created.length, notificationsCount: notifications.length });
 });
 
 app.get('/api/suggestions', requireAuth, async (request, response) => {
     const db = await getDb();
+    const dateParam = typeof request.query.date === 'string' ? request.query.date : null;
+    const range = getDayRange(dateParam || undefined);
     const suggestions = await db.all(
         `SELECT id, type, title, rationale_text AS rationale, start_at AS startAt,
 						end_at AS endAt, status, priority_score AS priority
 		 FROM suggestions
-		 WHERE user_id = ?
+	 WHERE user_id = ?
+	   AND start_at BETWEEN ? AND ?
 		 ORDER BY priority_score ASC, created_at DESC`,
-        request.user.id
+        request.user.id,
+        range.startDay,
+        range.endDay
     );
     response.json(suggestions);
 });
@@ -460,20 +471,33 @@ app.post('/api/suggestions/:id/action', requireAuth, async (request, response) =
 
 app.get('/api/morning-summary', requireAuth, async (request, response) => {
     const db = await getDb();
-    const summaryNotification = await createMorningSummaryNotification(db, request.user.id);
+    const dateParam = typeof request.query.date === 'string' ? request.query.date : null;
+    const range = getDayRange(dateParam || undefined);
+    const todayRange = getDayRange();
+    const summaryNotification = range.dateKey === todayRange.dateKey
+        ? await createMorningSummaryNotification(db, request.user.id)
+        : null;
     const topSuggestions = await db.all(
         `SELECT id, title, rationale_text AS rationale, priority_score AS priority
 		 FROM suggestions
-		 WHERE user_id = ? AND status = 'pending'
+	 WHERE user_id = ?
+	   AND status = 'pending'
+	   AND start_at BETWEEN ? AND ?
 		 ORDER BY priority_score ASC, created_at DESC
 		 LIMIT 3`,
-        request.user.id
+        request.user.id,
+        range.startDay,
+        range.endDay
     );
 
     const eventCount = await db.get(
         `SELECT COUNT(*) AS total FROM events
-		 WHERE user_id = ? AND date(start_at) = date('now')`,
-        request.user.id
+		 WHERE user_id = ?
+		   AND start_at < ?
+		   AND end_at > ?`,
+        request.user.id,
+        range.endDay,
+        range.startDay
     );
 
     response.json({

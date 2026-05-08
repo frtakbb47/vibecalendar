@@ -75,6 +75,14 @@ function monthKeyToDate(monthKey: string) {
     return new Date(year, month - 1, 1);
 }
 
+function formatDateLabel(dateKey: string) {
+    return new Date(`${dateKey}T12:00:00`).toLocaleDateString([], {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
 function App() {
     const [token, setToken] = useState<string | null>(localStorage.getItem(TOKEN_KEY));
     const [user, setUser] = useState<User | null>(null);
@@ -88,7 +96,7 @@ function App() {
     const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [groups, setGroups] = useState<Group[]>([]);
-    const [morningHeadline, setMorningHeadline] = useState('Your morning summary is loading.');
+    const [morningHeadline, setMorningHeadline] = useState('Your daily summary is loading.');
     const [demoAccountLabel, setDemoAccountLabel] = useState('');
     const [demoMode, setDemoMode] = useState(false);
     const [demoStep, setDemoStep] = useState(0);
@@ -96,6 +104,8 @@ function App() {
     const [plannerMonth, setPlannerMonth] = useState(() => monthKeyFromDate(new Date()));
     const [selectedDateKey, setSelectedDateKey] = useState(() => toDateKeyLocal(new Date().toISOString()));
     const [plannerView, setPlannerView] = useState<'month' | 'week'>('month');
+    const [insightDateKey, setInsightDateKey] = useState(() => toDateKeyLocal(new Date().toISOString()));
+    const [effortDateKey, setEffortDateKey] = useState(() => toDateKeyLocal(new Date().toISOString()));
 
     const [icalUrl, setIcalUrl] = useState('');
     const [icalHidden, setIcalHidden] = useState(true);
@@ -128,9 +138,10 @@ function App() {
         return map;
     }, [events]);
     const todayKey = useMemo(() => toDateKeyLocal(new Date().toISOString()), []);
-    const todayEvents = useMemo(() => eventsByDateKey.get(todayKey) || [], [eventsByDateKey, todayKey]);
-    const hiddenBlocks = todayEvents.filter((eventItem) => eventItem.sourceVisibility === 'hidden').length;
-    const highEffortEvents = todayEvents.filter((eventItem) => eventItem.effortLevel === 'High' || eventItem.effortLevel === 'Very High').length;
+    const insightEvents = useMemo(() => eventsByDateKey.get(insightDateKey) || [], [eventsByDateKey, insightDateKey]);
+    const effortEvents = useMemo(() => eventsByDateKey.get(effortDateKey) || [], [eventsByDateKey, effortDateKey]);
+    const hiddenBlocks = insightEvents.filter((eventItem) => eventItem.sourceVisibility === 'hidden').length;
+    const highEffortEvents = insightEvents.filter((eventItem) => eventItem.effortLevel === 'High' || eventItem.effortLevel === 'Very High').length;
 
     const monthDate = useMemo(() => monthKeyToDate(plannerMonth), [plannerMonth]);
     const monthLabel = useMemo(
@@ -203,13 +214,21 @@ function App() {
         };
     }, [tourOpen, tourStep]);
 
+    async function loadDayInsights(activeToken: string, dateKey: string) {
+        setMorningHeadline('Loading summary...');
+        const [suggestionItems, summary] = await Promise.all([
+            apiSuggestions(activeToken, dateKey),
+            apiMorningSummary(activeToken, dateKey)
+        ]);
+        setSuggestions(suggestionItems);
+        setMorningHeadline(summary.headline);
+    }
+
     async function loadDashboard(activeToken: string) {
-        const [me, calendarItems, eventItems, suggestionItems, summary, noticeItems, groupItems] = await Promise.all([
+        const [me, calendarItems, eventItems, noticeItems, groupItems] = await Promise.all([
             apiMe(activeToken),
             apiCalendars(activeToken),
             apiEvents(activeToken),
-            apiSuggestions(activeToken),
-            apiMorningSummary(activeToken),
             apiNotifications(activeToken),
             apiGroups(activeToken)
         ]);
@@ -217,8 +236,6 @@ function App() {
         setUser(me);
         setCalendars(calendarItems);
         setEvents(eventItems);
-        setSuggestions(suggestionItems);
-        setMorningHeadline(summary.headline);
         setNotifications(noticeItems);
         setGroups(groupItems);
         setConsent({
@@ -239,6 +256,16 @@ function App() {
             localStorage.removeItem(TOKEN_KEY);
         });
     }, [token]);
+
+    useEffect(() => {
+        if (!token) {
+            return;
+        }
+
+        loadDayInsights(token, insightDateKey).catch((insightError) => {
+            setError(insightError instanceof Error ? insightError.message : 'Failed to load insights.');
+        });
+    }, [token, insightDateKey]);
 
     async function onAuthSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -467,16 +494,16 @@ function App() {
 
         setError('');
         try {
-            await apiRunSuggestions(token);
+            await apiRunSuggestions(token, { date: insightDateKey, refresh: true });
             const [refreshedSuggestions, refreshedNotifications, summary] = await Promise.all([
-                apiSuggestions(token),
+                apiSuggestions(token, insightDateKey),
                 apiNotifications(token),
-                apiMorningSummary(token)
+                apiMorningSummary(token, insightDateKey)
             ]);
             setSuggestions(refreshedSuggestions);
             setNotifications(refreshedNotifications);
             setMorningHeadline(summary.headline);
-            setStatusMessage('Suggestions refreshed from your current schedule.');
+            setStatusMessage(`Suggestions refreshed for ${formatDateLabel(insightDateKey)}.`);
         } catch (suggestionError) {
             setError(suggestionError instanceof Error ? suggestionError.message : 'Failed to run suggestion engine.');
         }
@@ -736,10 +763,26 @@ function App() {
                 {tab === 'today' && (
                     <>
                         <section className="panel">
-                            <h2>Today&apos;s story</h2>
+                            <div className="inline-row">
+                                <div>
+                                    <h2>{insightDateKey === todayKey ? "Today's story" : 'Day snapshot'}</h2>
+                                    <p className="muted">{formatDateLabel(insightDateKey)}</p>
+                                </div>
+                                <div className="date-controls">
+                                    <input
+                                        className="date-input"
+                                        type="date"
+                                        value={insightDateKey}
+                                        onChange={(event) => setInsightDateKey(event.target.value)}
+                                    />
+                                    <button type="button" className="ghost" onClick={() => setInsightDateKey(todayKey)}>
+                                        Today
+                                    </button>
+                                </div>
+                            </div>
                             <div className="metric-row">
                                 <div className="metric-card">
-                                    <strong>{todayEvents.length}</strong>
+                                    <strong>{insightEvents.length}</strong>
                                     <span>events on your schedule</span>
                                 </div>
                                 <div className="metric-card">
@@ -768,7 +811,7 @@ function App() {
 
                         <section className="panel">
                             <div className="inline-row">
-                                <h2>Morning Summary</h2>
+                                <h2>Daily Summary</h2>
                                 <button type="button" onClick={runSuggestionsNow}>
                                     Refresh suggestions
                                 </button>
@@ -777,11 +820,11 @@ function App() {
                             <div className="summary-grid">
                                 <div className="summary-card">
                                     <h3>Today&apos;s events</h3>
-                                    {todayEvents.length === 0 ? (
+                                    {insightEvents.length === 0 ? (
                                         <p className="muted">No events yet. Add a quick block in the Week view.</p>
                                     ) : (
                                         <ul className="summary-list">
-                                            {todayEvents.slice(0, 6).map((item) => (
+                                            {insightEvents.slice(0, 6).map((item) => (
                                                 <li key={item.id}>
                                                     <strong>{formatLocalTime(item.startAt)}</strong> {item.title}
                                                 </li>
@@ -1175,34 +1218,53 @@ function App() {
                         </section>
 
                         <section className="panel">
-                            <h2>Manual Effort Tagging</h2>
-                            <p className="muted">Tag classes so suggestions can balance study and recovery time.</p>
-                            <div className="stack">
-                                {events.map((eventItem) => (
-                                    <article key={eventItem.id} className="event-row">
-                                        <div>
-                                            <strong>{eventItem.title}</strong>
-                                            <p>
-                                                {formatLocalTime(eventItem.startAt)} - {formatLocalTime(eventItem.endAt)}
-                                            </p>
-                                        </div>
-                                        <select
-                                            value={eventItem.effortLevel || 'Low'}
-                                            onChange={(input) =>
-                                                updateEffort(
-                                                    eventItem.id,
-                                                    input.target.value as 'Low' | 'Medium' | 'High' | 'Very High'
-                                                )
-                                            }
-                                        >
-                                            <option>Low</option>
-                                            <option>Medium</option>
-                                            <option>High</option>
-                                            <option>Very High</option>
-                                        </select>
-                                    </article>
-                                ))}
+                            <div className="inline-row">
+                                <div>
+                                    <h2>Manual Effort Tagging</h2>
+                                    <p className="muted">Pick a date and tag event intensity for that day.</p>
+                                </div>
+                                <div className="date-controls">
+                                    <input
+                                        className="date-input"
+                                        type="date"
+                                        value={effortDateKey}
+                                        onChange={(event) => setEffortDateKey(event.target.value)}
+                                    />
+                                    <button type="button" className="ghost" onClick={() => setEffortDateKey(todayKey)}>
+                                        Today
+                                    </button>
+                                </div>
                             </div>
+                            {effortEvents.length === 0 ? (
+                                <p className="muted">No events on this date. Try another day.</p>
+                            ) : (
+                                <div className="stack">
+                                    {effortEvents.map((eventItem) => (
+                                        <article key={eventItem.id} className="event-row">
+                                            <div>
+                                                <strong>{eventItem.title}</strong>
+                                                <p>
+                                                    {formatLocalTime(eventItem.startAt)} - {formatLocalTime(eventItem.endAt)}
+                                                </p>
+                                            </div>
+                                            <select
+                                                value={eventItem.effortLevel || 'Low'}
+                                                onChange={(input) =>
+                                                    updateEffort(
+                                                        eventItem.id,
+                                                        input.target.value as 'Low' | 'Medium' | 'High' | 'Very High'
+                                                    )
+                                                }
+                                            >
+                                                <option>Low</option>
+                                                <option>Medium</option>
+                                                <option>High</option>
+                                                <option>Very High</option>
+                                            </select>
+                                        </article>
+                                    ))}
+                                </div>
+                            )}
                         </section>
                     </>
                 )}
