@@ -9,6 +9,11 @@
     --line: #ead8c7;
     --ok: #2f7d58;
     --muted: #a28f7c;
+    --space-1: 6px;
+    --space-2: 10px;
+    --space-3: 14px;
+    --space-4: 18px;
+    --space-5: 24px;
 }
 
 * {
@@ -40,20 +45,20 @@ p {
 
 .app-shell {
     width: min(1100px, 92vw);
-    margin: 24px auto 48px;
+    margin: 26px auto 52px;
     display: grid;
-    gap: 16px;
+    gap: var(--space-4);
 }
 
 .hero-card {
     background: linear-gradient(132deg, #fff5ec, #ffffff 50%, #ecfaf2);
     border: 1px solid var(--line);
     border-radius: 24px;
-    padding: 24px;
+    padding: 26px;
     display: flex;
     justify-content: space-between;
     align-items: end;
-    gap: 24px;
+    gap: var(--space-5);
     animation: rise 500ms ease-out;
 }
 
@@ -74,7 +79,7 @@ p {
 .summary-chip {
     background: var(--accent-soft);
     border-radius: 16px;
-    padding: 10px 14px;
+    padding: 12px 16px;
     min-width: 150px;
     text-align: right;
 }
@@ -107,7 +112,7 @@ p {
 
 .tab-nav {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
     flex-wrap: wrap;
 }
 
@@ -116,7 +121,7 @@ p {
     background: #fff9f0;
     color: var(--ink);
     border-radius: 999px;
-    padding: 10px 16px;
+    padding: 11px 16px;
     cursor: pointer;
     font-weight: 600;
 }
@@ -130,7 +135,7 @@ p {
 .content-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(280px, 1fr));
-    gap: 16px;
+    gap: var(--space-4);
 }
 
 .single-column {
@@ -141,9 +146,9 @@ p {
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: 20px;
-    padding: 18px;
+    padding: 20px;
     display: grid;
-    gap: 10px;
+    gap: var(--space-3);
     animation: rise 600ms ease-out;
 }
 
@@ -152,8 +157,8 @@ p {
 }
 
 .status-panel {
-    gap: 6px;
-    padding: 12px 18px;
+    gap: var(--space-2);
+    padding: 14px 20px;
 }
 
 .status-text {
@@ -172,14 +177,14 @@ p {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: var(--space-3);
     flex-wrap: wrap;
 }
 
 .date-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     flex-wrap: wrap;
 }
 
@@ -190,16 +195,16 @@ p {
 .summary-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: var(--space-3);
 }
 
 .summary-card {
     border: 1px solid var(--line);
     border-radius: 14px;
-    padding: 12px;
+    padding: 14px;
     background: #fff;
     display: grid;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .summary-card h3 {
@@ -212,20 +217,20 @@ p {
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 6px;
+    gap: var(--space-1);
 }
 
 .list {
     margin: 0;
     padding-left: 18px;
     display: grid;
-    gap: 6px;
+    gap: var(--space-1);
 }
 
 .story-strip,
 .feature-pill-row {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
     flex-wrap: wrap;
 }
 
@@ -233,7 +238,7 @@ p {
 .feature-pill-row span {
     border: 1px solid var(--line);
     border-radius: 999px;
-    padding: 7px 12px;
+    padding: 8px 12px;
     background: #fff9f3;
     color: var(--subtle);
     font-size: 0.9rem;
@@ -246,16 +251,16 @@ p {
 .metric-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
+    gap: var(--space-2);
 }
 
 .metric-card {
     border: 1px solid var(--line);
     border-radius: 14px;
-    padding: 12px;
+    padding: 14px;
     background: linear-gradient(180deg, #fff, #fff8f1);
     display: grid;
-    gap: 4px;
+    gap: var(--space-1);
 }
 
 .metric-card strong {
@@ -285,7 +290,7 @@ p {
 .planner-weekdays {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 720px;
     color: var(--subtle);
     font-size: 0.84rem;
@@ -295,7 +300,7 @@ p {
 .planner-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 720px;
 }
 
@@ -306,9 +311,9 @@ p {
     background: #fff;
     color: var(--ink);
     text-align: left;
-    padding: 8px;
+    padding: 10px;
     display: grid;
-    gap: 6px;
+    gap: var(--space-1);
     align-content: start;
 }
 
@@ -330,7 +335,7 @@ p {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
+    gap: var(--space-2);
 }
 
 .planner-day-head span {
@@ -345,7 +350,7 @@ p {
 
 .planner-day-events {
     display: grid;
-    gap: 4px;
+    gap: var(--space-1);
 }
 
 .planner-pill {
@@ -378,8 +383,8 @@ p {
 
 .planner-week-timeline {
     display: flex;
-    gap: 12px;
-    margin-top: 12px;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
 }
 
 .timeline-hours {
@@ -399,7 +404,7 @@ p {
 .timeline-columns {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 700px;
 }
 
@@ -454,16 +459,16 @@ p {
 .modal {
     background: var(--card);
     border: 1px solid var(--line);
-    padding: 18px;
+    padding: 20px;
     border-radius: 12px;
     width: min(520px, 92vw);
     display: grid;
-    gap: 10px;
+    gap: var(--space-3);
 }
 
 .modal label {
     display: grid;
-    gap: 6px;
+    gap: var(--space-1);
 }
 
 .tour-highlight {
@@ -476,7 +481,7 @@ p {
 .demo-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
+    gap: var(--space-2);
 }
 
 .demo-card {
@@ -485,8 +490,8 @@ p {
     color: var(--ink);
     text-align: left;
     display: grid;
-    gap: 4px;
-    padding: 12px;
+    gap: var(--space-1);
+    padding: 14px;
     border-radius: 14px;
 }
 
@@ -511,7 +516,7 @@ p {
 
 .stack {
     display: grid;
-    gap: 10px;
+    gap: var(--space-3);
 }
 
 .suggestion-card,
@@ -519,7 +524,7 @@ p {
 .event-row {
     border: 1px solid var(--line);
     border-radius: 14px;
-    padding: 12px;
+    padding: 14px;
     background: #ffffff;
 }
 
@@ -555,9 +560,9 @@ p {
 .actions,
 .row-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
     flex-wrap: wrap;
-    margin-top: 10px;
+    margin-top: var(--space-2);
     align-items: center;
 }
 
@@ -571,7 +576,7 @@ button {
     border: 1px solid var(--accent);
     background: var(--accent);
     color: #fff;
-    padding: 8px 12px;
+    padding: 9px 14px;
     border-radius: 10px;
     cursor: pointer;
     font-weight: 600;
@@ -610,7 +615,7 @@ button.ghost:hover:not(:disabled) {
 input {
     border: 1px solid var(--line);
     border-radius: 10px;
-    padding: 8px;
+    padding: 9px 10px;
     background: #fffdfb;
     width: 100%;
 }
@@ -635,16 +640,16 @@ input[type='checkbox'] {
 select {
     border: 1px solid var(--line);
     border-radius: 10px;
-    padding: 8px;
+    padding: 9px 10px;
     background: #fffdfb;
 }
 
 .invite-box {
     border: 1px dashed var(--muted);
     border-radius: 14px;
-    padding: 12px;
+    padding: 14px;
     display: grid;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .auth-panel {
@@ -653,12 +658,12 @@ select {
 
 .auth-form {
     display: grid;
-    gap: 10px;
+    gap: var(--space-3);
 }
 
 .auth-form label {
     display: grid;
-    gap: 6px;
+    gap: var(--space-1);
     color: var(--subtle);
 }
 
@@ -671,7 +676,7 @@ code {
 
 .switch-row {
     display: flex;
-    gap: 10px;
+    gap: var(--space-2);
     align-items: center;
 }
 
