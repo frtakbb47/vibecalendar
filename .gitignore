@@ -1,0 +1,4 @@
+node_modules/
+server/vibecalendar.db
+server/vibecalendar.db-wal
+server/vibecalendar.db-shm
