@@ -248,6 +248,16 @@ async function seedDemoGroups(db) {
     }
 }
 
+async function resetDemoUserData(db, userId) {
+    await db.run('DELETE FROM events WHERE user_id = ?', userId);
+    await db.run('DELETE FROM suggestions WHERE user_id = ?', userId);
+    await db.run('DELETE FROM notifications WHERE user_id = ?', userId);
+    await db.run('DELETE FROM connected_calendars WHERE user_id = ?', userId);
+    await db.run('DELETE FROM privacy_consents WHERE user_id = ?', userId);
+    await db.run('DELETE FROM friend_group_members WHERE user_id = ?', userId);
+    await db.run('DELETE FROM oauth_states WHERE user_id = ?', userId);
+}
+
 async function seed() {
     const dbPath = path.resolve('./server/sample_data/example_accounts.json');
     if (!fs.existsSync(dbPath)) {
@@ -263,22 +273,29 @@ async function seed() {
     for (const u of users) {
         const now = new Date().toISOString();
 
-        // Skip if user already exists
         const existing = await db.get('SELECT id FROM users WHERE email = ?', u.email);
-        if (existing) {
-            console.log('Skipping existing user:', u.email);
-            continue;
-        }
-
-        const userId = uuidv4();
         const password = u.password || 'demo-pass';
         const passwordHash = await bcrypt.hash(password, 10);
+        let userId;
 
-        await db.run(
-            `INSERT INTO users (id, name, email, password_hash, timezone, created_at, updated_at)
+        if (existing) {
+            userId = existing.id;
+            await resetDemoUserData(db, userId);
+            await db.run(
+                `UPDATE users
+                 SET name = ?, password_hash = ?, timezone = ?, updated_at = ?
+                 WHERE id = ?`,
+                [u.name, passwordHash, u.timezone || 'UTC', now, userId]
+            );
+            console.log('Refreshing demo user:', u.email);
+        } else {
+            userId = uuidv4();
+            await db.run(
+                `INSERT INTO users (id, name, email, password_hash, timezone, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [userId, u.name, u.email, passwordHash, u.timezone || 'UTC', now, now]
-        );
+                [userId, u.name, u.email, passwordHash, u.timezone || 'UTC', now, now]
+            );
+        }
 
         // privacy_consents
         const pc = u.privacy_consents || { location_consent: 0, social_consent: 1, calendar_write_consent: 0 };
