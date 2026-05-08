@@ -22,24 +22,41 @@
                 "title": "Calculus Lecture",
                 "start_at": "2026-04-28T09:00:00Z",
                 "end_at": "2026-04-28T10:15:00Z",
-                "effort_level": "High"
+                "effort_level": "High",
+                "category": "class"
+            },
+            {
+                "title": "Physics Lab",
+                "start_at": "2026-04-28T10:45:00Z",
+                "end_at": "2026-04-28T12:00:00Z",
+                "effort_level": "High",
+                "category": "class"
+            },
+            {
+                "title": "Lunch at Campus Cafe",
+                "start_at": "2026-04-28T12:30:00Z",
+                "end_at": "2026-04-28T13:15:00Z",
+                "effort_level": "Low",
+                "category": "meal"
             },
             {
                 "title": "Study: Linear Algebra",
-                "start_at": "2026-04-28T11:00:00Z",
-                "end_at": "2026-04-28T12:00:00Z",
-                "effort_level": "Medium"
+                "start_at": "2026-04-28T13:45:00Z",
+                "end_at": "2026-04-28T14:45:00Z",
+                "effort_level": "Medium",
+                "category": "study"
             },
             {
-                "title": "Lunch with Sam",
-                "start_at": "2026-04-28T12:30:00Z",
-                "end_at": "2026-04-28T13:15:00Z",
-                "effort_level": "Low"
+                "title": "Club Project Sync",
+                "start_at": "2026-04-28T16:30:00Z",
+                "end_at": "2026-04-28T17:30:00Z",
+                "effort_level": "Medium",
+                "category": "meeting"
             },
             {
                 "title": null,
-                "start_at": "2026-04-28T14:00:00Z",
-                "end_at": "2026-04-28T15:00:00Z",
+                "start_at": "2026-04-28T18:30:00Z",
+                "end_at": "2026-04-28T19:15:00Z",
                 "source_visibility": "hidden",
                 "is_busy_block_only": 1
             }
@@ -66,15 +83,29 @@
         "events": [
             {
                 "title": null,
-                "start_at": "2026-04-28T08:00:00Z",
-                "end_at": "2026-04-28T09:30:00Z",
+                "start_at": "2026-04-28T08:30:00Z",
+                "end_at": "2026-04-28T10:00:00Z",
                 "source_visibility": "hidden",
                 "is_busy_block_only": 1
             },
             {
                 "title": null,
-                "start_at": "2026-04-28T10:00:00Z",
-                "end_at": "2026-04-28T10:15:00Z",
+                "start_at": "2026-04-28T11:00:00Z",
+                "end_at": "2026-04-28T11:30:00Z",
+                "source_visibility": "hidden",
+                "is_busy_block_only": 1
+            },
+            {
+                "title": null,
+                "start_at": "2026-04-28T14:00:00Z",
+                "end_at": "2026-04-28T15:00:00Z",
+                "source_visibility": "hidden",
+                "is_busy_block_only": 1
+            },
+            {
+                "title": null,
+                "start_at": "2026-04-28T18:30:00Z",
+                "end_at": "2026-04-28T20:00:00Z",
                 "source_visibility": "hidden",
                 "is_busy_block_only": 1
             }
@@ -109,19 +140,36 @@
                 "title": "Research Meeting",
                 "start_at": "2026-04-28T13:00:00Z",
                 "end_at": "2026-04-28T14:30:00Z",
-                "effort_level": "High"
+                "effort_level": "High",
+                "category": "meeting"
+            },
+            {
+                "title": "Lab Work Session",
+                "start_at": "2026-04-28T15:00:00Z",
+                "end_at": "2026-04-28T17:00:00Z",
+                "effort_level": "Medium",
+                "category": "work"
+            },
+            {
+                "title": "Dinner with Lab",
+                "start_at": "2026-04-28T18:00:00Z",
+                "end_at": "2026-04-28T19:00:00Z",
+                "effort_level": "Low",
+                "category": "meal"
             },
             {
                 "title": "Evening Gym",
                 "start_at": "2026-04-28T20:00:00Z",
                 "end_at": "2026-04-28T21:00:00Z",
-                "effort_level": "Low"
+                "effort_level": "Low",
+                "category": "wellness"
             },
             {
                 "title": "Overnight Hackathon",
                 "start_at": "2026-04-28T23:30:00Z",
                 "end_at": "2026-04-29T06:00:00Z",
-                "effort_level": "High"
+                "effort_level": "High",
+                "category": "work"
             }
         ]
     },
@@ -138,10 +186,25 @@
         "connected_calendars": [],
         "events": [
             {
+                "title": "Morning Seminar",
+                "start_at": "2026-04-28T09:00:00Z",
+                "end_at": "2026-04-28T10:30:00Z",
+                "effort_level": "Medium",
+                "category": "class"
+            },
+            {
+                "title": "Grocery Run",
+                "start_at": "2026-04-28T12:00:00Z",
+                "end_at": "2026-04-28T12:45:00Z",
+                "effort_level": "Low",
+                "category": "errand"
+            },
+            {
                 "title": "Part-time Job (Evening)",
                 "start_at": "2026-04-28T17:00:00Z",
                 "end_at": "2026-04-28T21:00:00Z",
-                "effort_level": "Medium"
+                "effort_level": "Medium",
+                "category": "work"
             }
         ]
     },
@@ -166,15 +229,38 @@
         "events": [
             {
                 "title": "Morning Run",
-                "start_at": "2026-04-28T05:30:00Z",
-                "end_at": "2026-04-28T06:15:00Z",
-                "effort_level": "Low"
+                "start_at": "2026-04-28T06:30:00Z",
+                "end_at": "2026-04-28T07:15:00Z",
+                "effort_level": "Low",
+                "category": "wellness"
+            },
+            {
+                "title": "Data Systems Lecture",
+                "start_at": "2026-04-28T13:00:00Z",
+                "end_at": "2026-04-28T14:15:00Z",
+                "effort_level": "High",
+                "category": "class"
             },
             {
                 "title": "Midterm Exam",
-                "start_at": "2026-04-28T14:00:00Z",
-                "end_at": "2026-04-28T16:00:00Z",
-                "effort_level": "High"
+                "start_at": "2026-04-28T15:00:00Z",
+                "end_at": "2026-04-28T17:00:00Z",
+                "effort_level": "High",
+                "category": "class"
+            },
+            {
+                "title": "Study Group",
+                "start_at": "2026-04-28T18:30:00Z",
+                "end_at": "2026-04-28T19:30:00Z",
+                "effort_level": "Medium",
+                "category": "study"
+            },
+            {
+                "title": "Work Shift",
+                "start_at": "2026-04-28T20:00:00Z",
+                "end_at": "2026-04-28T22:00:00Z",
+                "effort_level": "Medium",
+                "category": "work"
             }
         ]
     },
@@ -183,8 +269,10 @@
         "email": "fiona@student.edu",
         "password": "fionapass",
         "timezone": "Asia/Hong_Kong",
-        "privacy_consent": {
-            "location_consent": 1
+        "privacy_consents": {
+            "location_consent": 1,
+            "social_consent": 1,
+            "calendar_write_consent": 0
         },
         "connected_calendars": [
             {
@@ -199,13 +287,29 @@
                 "title": "Thesis Work",
                 "start_at": "2026-04-28T09:00:00Z",
                 "end_at": "2026-04-28T12:00:00Z",
-                "effort_level": "High"
+                "effort_level": "High",
+                "category": "study"
+            },
+            {
+                "title": "Advisor Meeting",
+                "start_at": "2026-04-28T12:30:00Z",
+                "end_at": "2026-04-28T13:00:00Z",
+                "effort_level": "Medium",
+                "category": "meeting"
             },
             {
                 "title": "Coffee Break",
-                "start_at": "2026-04-28T12:15:00Z",
-                "end_at": "2026-04-28T12:45:00Z",
-                "effort_level": "Low"
+                "start_at": "2026-04-28T13:15:00Z",
+                "end_at": "2026-04-28T13:45:00Z",
+                "effort_level": "Low",
+                "category": "meal"
+            },
+            {
+                "title": "Language Class",
+                "start_at": "2026-04-28T18:00:00Z",
+                "end_at": "2026-04-28T19:30:00Z",
+                "effort_level": "Medium",
+                "category": "class"
             }
         ]
     },
@@ -222,10 +326,39 @@
         "connected_calendars": [],
         "events": [
             {
-                "title": "Free Day",
-                "start_at": "2026-04-28T00:00:00Z",
-                "end_at": "2026-04-28T23:59:00Z",
-                "effort_level": "Low"
+                "title": "Volunteer Shift",
+                "start_at": "2026-04-28T09:30:00Z",
+                "end_at": "2026-04-28T11:30:00Z",
+                "effort_level": "Medium",
+                "category": "work"
+            },
+            {
+                "title": "Lunch with Roommates",
+                "start_at": "2026-04-28T12:30:00Z",
+                "end_at": "2026-04-28T13:30:00Z",
+                "effort_level": "Low",
+                "category": "meal"
+            },
+            {
+                "title": "Creative Writing Session",
+                "start_at": "2026-04-28T15:00:00Z",
+                "end_at": "2026-04-28T16:15:00Z",
+                "effort_level": "Medium",
+                "category": "study"
+            },
+            {
+                "title": "Yoga Flow",
+                "start_at": "2026-04-28T18:00:00Z",
+                "end_at": "2026-04-28T19:00:00Z",
+                "effort_level": "Low",
+                "category": "wellness"
+            },
+            {
+                "title": "Movie Night",
+                "start_at": "2026-04-28T20:00:00Z",
+                "end_at": "2026-04-28T22:00:00Z",
+                "effort_level": "Low",
+                "category": "social"
             }
         ]
     }

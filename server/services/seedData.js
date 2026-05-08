@@ -19,21 +19,24 @@ export async function seedUserDataIfEmpty(db, userId) {
             title: 'Data Structures Lecture',
             startAt: iso(9, 0),
             endAt: iso(10, 30),
-            effort: 'High'
+            effort: 'High',
+            category: 'class'
         },
         {
             id: randomUUID(),
             title: 'Project Team Standup',
             startAt: iso(12, 0),
             endAt: iso(12, 30),
-            effort: 'Medium'
+            effort: 'Medium',
+            category: 'meeting'
         },
         {
             id: randomUUID(),
             title: 'Design Critique',
             startAt: iso(14, 0),
             endAt: iso(15, 15),
-            effort: 'Medium'
+            effort: 'Medium',
+            category: 'study'
         }
     ];
 
@@ -41,14 +44,15 @@ export async function seedUserDataIfEmpty(db, userId) {
         await db.run(
             `INSERT INTO events (
         id, user_id, title, start_at, end_at, source_visibility,
-        is_busy_block_only, effort_level, created_by, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 'standard', 0, ?, 'manual', ?, ?)`,
+        is_busy_block_only, effort_level, category, created_by, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, 'standard', 0, ?, ?, 'manual', ?, ?)`,
             event.id,
             userId,
             event.title,
             event.startAt,
             event.endAt,
             event.effort,
+            event.category || null,
             new Date().toISOString(),
             new Date().toISOString()
         );

@@ -44,13 +44,13 @@ const JITTER_MINUTES = [-30, -15, 0, 15, 30, 45];
 const DURATION_DELTAS = [-15, 15, 30];
 
 const EXTRA_TEMPLATES = [
-    { title: 'Library Study Block', weekday: 1, hour: 16, minute: 0, durationMins: 90, effort_level: 'High' },
-    { title: 'Gym Session', weekday: 2, hour: 18, minute: 30, durationMins: 60, effort_level: 'Low' },
-    { title: 'Club Meeting', weekday: 3, hour: 19, minute: 0, durationMins: 60, effort_level: 'Medium' },
-    { title: 'Office Hours', weekday: 4, hour: 15, minute: 0, durationMins: 60, effort_level: 'Medium' },
-    { title: 'Coffee Break', weekday: 5, hour: 10, minute: 30, durationMins: 30, effort_level: 'Low' },
-    { title: 'Weekend Brunch', weekday: 6, hour: 11, minute: 0, durationMins: 60, effort_level: 'Low' },
-    { title: 'Campus Job Shift', weekday: 0, hour: 17, minute: 0, durationMins: 120, effort_level: 'Medium' }
+    { title: 'Library Study Block', weekday: 1, hour: 16, minute: 0, durationMins: 90, effort_level: 'High', category: 'study' },
+    { title: 'Gym Session', weekday: 2, hour: 18, minute: 30, durationMins: 60, effort_level: 'Low', category: 'wellness' },
+    { title: 'Club Meeting', weekday: 3, hour: 19, minute: 0, durationMins: 60, effort_level: 'Medium', category: 'social' },
+    { title: 'Office Hours', weekday: 4, hour: 15, minute: 0, durationMins: 60, effort_level: 'Medium', category: 'meeting' },
+    { title: 'Coffee Break', weekday: 5, hour: 10, minute: 30, durationMins: 30, effort_level: 'Low', category: 'meal' },
+    { title: 'Weekend Brunch', weekday: 6, hour: 11, minute: 0, durationMins: 60, effort_level: 'Low', category: 'meal' },
+    { title: 'Campus Job Shift', weekday: 0, hour: 17, minute: 0, durationMins: 120, effort_level: 'Medium', category: 'work' }
 ];
 
 function hashString(input) {
@@ -156,7 +156,8 @@ function buildWeeklyExtras(email, weekIndex, weekStart, extraPool) {
             title: template.title,
             start_at: start.toISOString(),
             end_at: end.toISOString(),
-            effort_level: template.effort_level
+            effort_level: template.effort_level,
+            category: template.category || null
         });
     }
 
@@ -336,8 +337,8 @@ async function seed() {
                             : null;
 
                     await db.run(
-                        `INSERT INTO events (id, user_id, connected_calendar_id, title, description, location_text, start_at, end_at, source_visibility, is_busy_block_only, effort_level, created_by, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                        `INSERT INTO events (id, user_id, connected_calendar_id, title, description, location_text, start_at, end_at, source_visibility, is_busy_block_only, effort_level, category, created_by, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                         [
                             evId,
                             userId,
@@ -350,6 +351,7 @@ async function seed() {
                             occurrence.source_visibility || (occurrence.title ? 'standard' : 'hidden'),
                             occurrence.is_busy_block_only ? 1 : 0,
                             occurrence.effort_level || null,
+                            occurrence.category || null,
                             occurrence.created_by || 'external',
                             now,
                             now
@@ -368,8 +370,8 @@ async function seed() {
             for (const extra of extras) {
                 const evId = uuidv4();
                 await db.run(
-                    `INSERT INTO events (id, user_id, connected_calendar_id, title, description, location_text, start_at, end_at, source_visibility, is_busy_block_only, effort_level, created_by, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO events (id, user_id, connected_calendar_id, title, description, location_text, start_at, end_at, source_visibility, is_busy_block_only, effort_level, category, created_by, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         evId,
                         userId,
@@ -382,6 +384,7 @@ async function seed() {
                         'standard',
                         0,
                         extra.effort_level || null,
+                        extra.category || null,
                         'external',
                         now,
                         now
