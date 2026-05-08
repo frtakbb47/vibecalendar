@@ -615,6 +615,15 @@ input {
     width: 100%;
 }
 
+input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    flex: 0 0 18px;
+    accent-color: var(--accent);
+}
+
 .event-row,
 .connection-row {
     display: flex;
