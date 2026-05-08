@@ -7,6 +7,8 @@ const effortWeight = {
     'Very High': 4
 };
 
+const MIN_GAP_MINUTES = 20;
+
 function minutesBetween(startIso, endIso) {
     return Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000);
 }
@@ -22,7 +24,7 @@ function scorePriority(type, beforeEffort) {
         return 1;
     }
 
-    if (type === 'eat') {
+    if (type === 'eat' || type === 'focus') {
         return 2;
     }
 
@@ -35,7 +37,7 @@ function scorePriority(type, beforeEffort) {
 
 function generateSuggestionFromGap(gap, previousEffort, nextEffort) {
     const duration = minutesBetween(gap.startAt, gap.endAt);
-    if (duration < 15) {
+    if (duration < MIN_GAP_MINUTES) {
         return null;
     }
 
@@ -48,7 +50,18 @@ function generateSuggestionFromGap(gap, previousEffort, nextEffort) {
     }
 
     const startHour = new Date(gap.startAt).getHours();
-    if (startHour >= 11 && startHour <= 14 && duration >= 20) {
+    const endHour = new Date(gap.endAt).getHours();
+    const anchorHour = startHour < 6 ? 9 : startHour;
+
+    if (anchorHour >= 7 && anchorHour <= 10 && duration >= 30) {
+        return {
+            type: 'focus',
+            title: 'Morning focus block',
+            rationale: 'Morning gaps are great for a single focused task before your day fills up.'
+        };
+    }
+
+    if (anchorHour >= 11 && anchorHour <= 14 && duration >= 20) {
         return {
             type: 'eat',
             title: 'Quick meal + hydration break',
@@ -64,15 +77,35 @@ function generateSuggestionFromGap(gap, previousEffort, nextEffort) {
         };
     }
 
-    if (duration >= 20) {
+    if (anchorHour >= 15 && anchorHour <= 18 && duration >= 30) {
         return {
-            type: 'meditate',
-            title: '5-minute breathing reset',
-            rationale: 'Small recovery breaks can stabilize focus across the day.'
+            type: 'study',
+            title: 'Focused study sprint',
+            rationale: 'A mid-afternoon sprint keeps momentum without draining your evening.'
         };
     }
 
-    return null;
+    if (anchorHour >= 18 && anchorHour <= 21 && duration >= 30) {
+        return {
+            type: 'recovery',
+            title: 'Evening decompression',
+            rationale: 'Use this space to reset so you can end the day with energy.'
+        };
+    }
+
+    if (duration >= 45 && endHour >= 12) {
+        return {
+            type: 'focus',
+            title: 'Quick admin sweep',
+            rationale: 'Use a bigger gap to clear small tasks and reduce mental clutter.'
+        };
+    }
+
+    return {
+        type: 'meditate',
+        title: '5-minute breathing reset',
+        rationale: 'Small recovery breaks can stabilize focus across the day.'
+    };
 }
 
 async function getTodayEvents(db, userId) {
@@ -92,8 +125,11 @@ async function getTodayEvents(db, userId) {
 }
 
 function buildGapWindows(events) {
-    const gaps = [];
+    if (events.length < 2) {
+        return [];
+    }
 
+    const gaps = [];
     for (let index = 0; index < events.length - 1; index += 1) {
         const current = events[index];
         const next = events[index + 1];
@@ -144,16 +180,33 @@ async function shouldSuppressSuggestion(db, userId, contextKey, type) {
 
 export async function runSuggestionEngine(db, userId) {
     const events = await getTodayEvents(db, userId);
-    if (events.length < 2) {
+    const now = new Date();
+    const startDay = toIsoFromDate(now, 0, 0);
+    const endDay = toIsoFromDate(now, 23, 59);
+    const gaps = buildGapWindows(events);
+
+    if (events.length === 0) {
+        gaps.push({ startAt: startDay, endAt: endDay, previousEvent: null, nextEvent: null });
+    } else {
+        const first = events[0];
+        const last = events[events.length - 1];
+        if (new Date(first.startAt).getTime() > new Date(startDay).getTime()) {
+            gaps.unshift({ startAt: startDay, endAt: first.startAt, previousEvent: null, nextEvent: first });
+        }
+        if (new Date(last.endAt).getTime() < new Date(endDay).getTime()) {
+            gaps.push({ startAt: last.endAt, endAt: endDay, previousEvent: last, nextEvent: null });
+        }
+    }
+
+    if (gaps.length === 0) {
         return [];
     }
 
-    const gaps = buildGapWindows(events);
     const created = [];
 
     for (const gap of gaps) {
-        const previousEffort = effortWeight[gap.previousEvent.effortLevel || 'Low'] || 1;
-        const nextEffort = effortWeight[gap.nextEvent.effortLevel || 'Low'] || 1;
+        const previousEffort = effortWeight[gap.previousEvent?.effortLevel || 'Low'] || 1;
+        const nextEffort = effortWeight[gap.nextEvent?.effortLevel || 'Low'] || 1;
         const contextKey = `${gap.startAt}-${gap.endAt}`;
 
         const suggestion = generateSuggestionFromGap(gap, previousEffort, nextEffort);
@@ -167,7 +220,7 @@ export async function runSuggestionEngine(db, userId) {
         }
 
         const id = randomUUID();
-        const now = new Date().toISOString();
+        const createdAt = new Date().toISOString();
         const priorityScore = scorePriority(suggestion.type, previousEffort);
 
         await db.run(
@@ -182,10 +235,10 @@ export async function runSuggestionEngine(db, userId) {
             suggestion.rationale,
             gap.startAt,
             gap.endAt,
-            0.76,
+            0.78,
             priorityScore,
             contextKey,
-            now
+            createdAt
         );
 
         created.push({ id, ...suggestion, startAt: gap.startAt, endAt: gap.endAt, priorityScore });

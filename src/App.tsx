@@ -114,8 +114,6 @@ function App() {
     );
 
     const activeSuggestions = suggestions.filter((suggestion) => suggestion.status === 'pending').slice(0, 3);
-    const hiddenBlocks = events.filter((eventItem) => eventItem.sourceVisibility === 'hidden').length;
-    const highEffortEvents = events.filter((eventItem) => eventItem.effortLevel === 'High' || eventItem.effortLevel === 'Very High').length;
     const eventsByDateKey = useMemo(() => {
         const map = new Map<string, EventItem[]>();
         for (const item of events) {
@@ -129,6 +127,10 @@ function App() {
         }
         return map;
     }, [events]);
+    const todayKey = useMemo(() => toDateKeyLocal(new Date().toISOString()), []);
+    const todayEvents = useMemo(() => eventsByDateKey.get(todayKey) || [], [eventsByDateKey, todayKey]);
+    const hiddenBlocks = todayEvents.filter((eventItem) => eventItem.sourceVisibility === 'hidden').length;
+    const highEffortEvents = todayEvents.filter((eventItem) => eventItem.effortLevel === 'High' || eventItem.effortLevel === 'Very High').length;
 
     const monthDate = useMemo(() => monthKeyToDate(plannerMonth), [plannerMonth]);
     const monthLabel = useMemo(
@@ -737,7 +739,7 @@ function App() {
                             <h2>Today&apos;s story</h2>
                             <div className="metric-row">
                                 <div className="metric-card">
-                                    <strong>{events.length}</strong>
+                                    <strong>{todayEvents.length}</strong>
                                     <span>events on your schedule</span>
                                 </div>
                                 <div className="metric-card">
@@ -772,13 +774,36 @@ function App() {
                                 </button>
                             </div>
                             <p>{morningHeadline}</p>
-                            <ul className="list">
-                                {activeSuggestions.map((item) => (
-                                    <li key={item.id}>
-                                        <strong>{formatLocalTime(item.startAt)}</strong> - {item.title}
-                                    </li>
-                                ))}
-                            </ul>
+                            <div className="summary-grid">
+                                <div className="summary-card">
+                                    <h3>Today&apos;s events</h3>
+                                    {todayEvents.length === 0 ? (
+                                        <p className="muted">No events yet. Add a quick block in the Week view.</p>
+                                    ) : (
+                                        <ul className="summary-list">
+                                            {todayEvents.slice(0, 6).map((item) => (
+                                                <li key={item.id}>
+                                                    <strong>{formatLocalTime(item.startAt)}</strong> {item.title}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                                <div className="summary-card">
+                                    <h3>Top suggestions</h3>
+                                    {activeSuggestions.length === 0 ? (
+                                        <p className="muted">No suggestions yet. Run the engine to refresh.</p>
+                                    ) : (
+                                        <ul className="summary-list">
+                                            {activeSuggestions.map((item) => (
+                                                <li key={item.id}>
+                                                    <strong>{formatLocalTime(item.startAt)}</strong> {item.title}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            </div>
                         </section>
 
                         <section className="panel">

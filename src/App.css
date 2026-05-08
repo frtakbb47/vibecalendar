@@ -79,6 +79,12 @@ p {
     text-align: right;
 }
 
+.summary-chip button {
+    margin-top: 8px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+}
+
 .pitch-chip {
     max-width: 320px;
 }
@@ -168,6 +174,34 @@ p {
     justify-content: space-between;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.summary-card {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    background: #fff;
+    display: grid;
+    gap: 8px;
+}
+
+.summary-card h3 {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.summary-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
 }
 
 .list {
@@ -513,6 +547,7 @@ p {
     gap: 8px;
     flex-wrap: wrap;
     margin-top: 10px;
+    align-items: center;
 }
 
 button,
@@ -529,6 +564,18 @@ button {
     border-radius: 10px;
     cursor: pointer;
     font-weight: 600;
+    transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, border-color 120ms ease;
+    box-shadow: 0 6px 12px rgba(221, 90, 40, 0.16);
+}
+
+button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(221, 90, 40, 0.2);
+}
+
+button:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(221, 90, 40, 0.18);
 }
 
 button:disabled {
@@ -540,6 +587,13 @@ button.ghost {
     border-color: var(--line);
     background: #fff;
     color: var(--ink);
+    box-shadow: none;
+}
+
+button.ghost:hover:not(:disabled) {
+    background: #fff4ea;
+    border-color: #e6c7b1;
+    box-shadow: 0 4px 12px rgba(221, 90, 40, 0.12);
 }
 
 input {
@@ -629,6 +683,10 @@ code {
 
     .metric-row,
     .demo-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .summary-grid {
         grid-template-columns: 1fr;
     }
 
